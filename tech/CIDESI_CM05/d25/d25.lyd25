@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<klayout-macro>
+ <description>Vista en 2.5D</description>
+ <version>1.0</version>
+ <category>d25</category>
+ <prolog/>
+ <epilog/>
+ <doc/>
+ <autorun>false</autorun>
+ <autorun-early>false</autorun-early>
+ <priority>0</priority>
+ <shortcut/>
+ <show-in-menu>true</show-in-menu>
+ <group-name>d25_scripts</group-name>
+ <menu-path>tools_menu.d25.end</menu-path>
+ <interpreter>dsl</interpreter>
+ <dsl-interpreter-name>d25-dsl-xml</dsl-interpreter-name>
+ <text># Definición de pila de materiales para vista 2.5
+# CIDESI_CM05
+# Autor: Rodolfo Sanchez Fraga
+# Fecha: Novimebre-2025
+# Centro de Ingeniería y Desarrollo Industrial
+
+# Definición de capas
+active = input(43,0)
+nsel = input(45,0)
+psel = input(44,0)
+poly = input(46,0)
+nactive = (active &amp; nsel)-poly
+pactive = (active &amp; psel)-poly
+
+ 
+z(input(42,0), -2.00 .. 0.0, like: "48/0", name:"NWELL")
+z(nactive, -0.50 .. 0.0,  like: "43/0", name:"NPLUS")
+z(pactive, -0.50 .. 0.0,  like: "56/0", name:"PPLUS")
+z(poly, 0.00 .. 0.25, name:"POLY")
+z(input(34,0), 0.00 .. 0.25, name:"POLY")
+z(input(48,0), 0.00 .. 0.50, like: "49/0", name:"CONTACT TO ACTIVE")
+z(input(47,0), 0.25 .. 0.50, like: "49/0", name:"CONTACT TO POLY")
+z(input(49,0), 0.50 .. 1.00, name:"METAL1")
+z(input(50,0), 1.00 .. 1.25, like: "51/0", name:"VIA")
+z(input(51,0), 1.25 .. 1.50, name:"METAL2")
+
+</text>
+</klayout-macro>

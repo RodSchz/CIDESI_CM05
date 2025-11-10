@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8"?>
+<klayout-macro>
+ <description>LVS for CIDESI_CM05</description>
+ <version>0.1</version>
+ <category>lvs</category>
+ <prolog/>
+ <epilog/>
+ <doc/>
+ <autorun>false</autorun>
+ <autorun-early>false</autorun-early>
+ <priority>0</priority>
+ <shortcut/>
+ <show-in-menu>true</show-in-menu>
+ <group-name>lvs_scripts</group-name>
+ <menu-path>tools_menu.lvs.end</menu-path>
+ <interpreter>dsl</interpreter>
+ <dsl-interpreter-name>lvs-dsl-xml</dsl-interpreter-name>
+ <text># ===== CIDESI_CM05 — LVS + EXTRACCIÓN → SPICE =====================
+# Soporta:
+#  - MOS 4T (PMOS/NMOS)
+#  - Resistores: Metal1, Poly (sobre campo), NDiff (fuera de Nwell), PDiff (en Nwell)
+#  - Capacitores INTENCIONALES: MIP (M1–Poly), MiM (M2–M1)
+# Marcadores:
+#  - ResBody  70/0   ResTerm 70/1   (opcional Res.text 70/2)
+#  - CapBody  71/0   CapTermA 71/1  CapTermB 71/2   (opcional Cap.text 71/3)
+
+deep
+report_lvs
+
+#use_globals = ($use_globals.to_s.downcase == "true")
+use_globals = "false"
+
+# --- Entrada opcional (cuando se ejecuta por "Run DRC/LVS") ---
+if $input
+  if $topcell
+    source($input, $topcell)
+  else
+    source($input)
+  end
+end
+
+# --------- Layers de proceso ----------
+nwell   = input(42,0)
+pwell   = input(41,0)
+active  = input(43,0)
+poly    = input(46,0)
+nplus   = input(45,0)
+pplus   = input(44,0)
+hres    = input(34,0)
+
+ctp     = input(47,0)   # Contacto a poly
+cta     = input(48,0)   # Contacto a activo
+m1      = input(49,0)
+via1    = input(50,0)
+m2      = input(51,0)
+
+m1_lbl  = labels(49,1)
+m2_lbl  = labels(51,1)
+
+# --------- Marcadores resistores ----------
+res_body = input(70,0)     # ResBody.drawing
+res_term = input(70,1)     # ResTerm.drawing
+res_txt  = labels(70,2)    # Res.text (opcional)
+connect(res_term, res_txt) # nombres de terminal (opcional)
+# --- Conectividad  para marcadores de resistor (Opción A: terminal en M1)
+#connect(res_term, m1)    # ResTerm pertenece eléctricamente a M1
+#connect(res_term, ct)    # por si ResTerm cae sobre CONTACT en vez de M1
+#connect(res_term,m1_lbl)
+
+
+# --------- Marcadores capacitores ----------
+cap_body = input(71,0)     # CapBody.drawing
+cap_tA   = input(71,1)     # CapTermA.drawing
+cap_tB   = input(71,2)     # CapTermB.drawing
+cap_txt  = labels(71,3)    # Cap.text (opcional)
+connect(cap_tA, cap_txt)
+connect(cap_tB, cap_txt)
+
+# --------- Derivados ----------
+active_in_nwell      = active &amp; nwell
+active_outside_nwell = active - nwell
+
+# MOS
+pactive = active_in_nwell &amp; pplus
+pgate   = pactive &amp; poly
+psd     = pactive - pgate
+
+nactive = active_outside_nwell &amp; nplus
+ngate   = nactive &amp; poly
+nsd     = nactive - ngate
+
+chip = extent.sized(0)
+psub = chip - nwell
+
+# --------- Conectividad ----------
+connect(psd,  cta)
+connect(nsd,  cta)
+connect(poly, ctp)
+connect(cta,  m1)
+connect(ctp,  m1)
+connect(m1,   via1)
+connect(via1, m2)
+
+# taps de bulk
+nwellcontact = active_in_nwell &amp; nplus
+psubcontact = active_outside_nwell &amp; pplus
+connect(nwell, nwellcontact)
+connect(psub,  psubcontact)
+connect(nwellcontact,cta)
+connect(psubcontact,cta)
+
+# propagación de nombres
+connect(m1, m1_lbl)
+connect(m2, m2_lbl)
+
+# (Opcional) Globales de respaldo
+if use_globals == "true"
+  puts "Usando nodos globales"
+  connect_global(psub,  "VSS")
+  connect_global(nwell, "VDD")
+end
+
+# ===========================================================
+#        EXTRACCIÓN DE DISPOSITIVOS — MOS
+# ===========================================================
+extract_devices(mos4("PMOS"), {
+  "SD" =&gt; psd, "G" =&gt; pgate, "W" =&gt; nwell,
+  "tD" =&gt; psd, "tS" =&gt; psd,  "tG" =&gt; poly, "tW" =&gt; nwell
+})
+
+extract_devices(mos4("NMOS"), {
+  "SD" =&gt; nsd, "G" =&gt; ngate, "W" =&gt; psub,
+  "tD" =&gt; nsd, "tS" =&gt; nsd,  "tG" =&gt; poly, "tW" =&gt; psub
+})
+
+# ===========================================================
+#        EXTRACCIÓN DE RESISTORES (Opción A: term. en M1)
+# ===========================================================
+body_m1    =  res_body &amp; m1
+body_poly  =  res_body &amp; hres
+body_ndiff =  res_body &amp; active_outside_nwell &amp; nplus
+body_pdiff =  res_body &amp; active_in_nwell &amp; pplus
+
+# Valores por cuadrado (ajusta a tu proceso)
+rho_m1    = 0.05
+rho_poly  = 2500.0
+rho_ndiff = 25.0
+rho_pdiff = 30.0
+
+term_poly = res_term + m1
+connect(term_poly, res_txt)
+connect(term_poly, m1_lbl)
+#connect(term_poly, ctp)
+
+extract_devices(resistor("R_METAL1", rho_m1),    { "R" =&gt; body_m1,    "C" =&gt; res_term })
+extract_devices(resistor("R_POLY",   rho_poly),  { "R" =&gt; body_poly,  "C" =&gt; term_poly})
+extract_devices(resistor("R_NDIFF",  rho_ndiff), { "R" =&gt; body_ndiff, "C" =&gt; res_term })
+extract_devices(resistor("R_PDIFF",  rho_pdiff), { "R" =&gt; body_pdiff, "C" =&gt; res_term })
+
+# ===========================================================
+#        EXTRACCIÓN DE CAPACITORES (SOLO MIP y MiM)
+# ===========================================================
+m1_clean   = m1   - cta - ctp - via1
+m2_clean   = m2   - via1
+poly_clean = poly - ctp
+
+connect(cap_tA, m2)
+connect(cap_tB, m1)
+
+# MIP: (M1 limpio ∧ Poly limpio) fuera de ACTIVE
+mip_body = (cap_body &amp; m1_clean &amp; poly_clean) &amp; (chip - active)
+extract_devices(capacitor("C_MIP", 5.0e-16), {
+  "P1" =&gt; (mip_body &amp; m1_clean),
+  "P2" =&gt; (mip_body &amp; poly_clean),
+  "tA" =&gt; cap_tA,
+  "tB" =&gt; cap_tB
+})
+
+# MiM: (M2 limpio ∧ M1 limpio)
+mim_body = cap_body &amp; m2_clean &amp; m1_clean
+extract_devices(capacitor("C_MIM", 1.2e-16), {
+  "P1" =&gt; (mim_body &amp; m2_clean),
+  "P2" =&gt; (mim_body &amp; m1_clean),
+  "tA" =&gt; cap_tA,
+  "tB" =&gt; cap_tB
+})
+
+# ===========================================================
+#              PUERTOS Y SPICE
+# ===========================================================
+netlist.make_top_level_pins
+#netlist.simplify           # útil desactivado al depurar
+netlist.purge
+netlist.purge_nets
+
+use_net_names = true
+with_comments = false
+out_path = $out_spice || "extracted.cir"
+
+target_netlist(out_path,
+               write_spice(use_net_names, with_comments),
+               "Extracted by KLayout (CIDESI_CM05, LNunT, CIDESI)")
+</text>
+</klayout-macro>
