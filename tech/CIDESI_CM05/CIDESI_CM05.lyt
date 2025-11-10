@@ -5,9 +5,9 @@
  <group>CIDESI</group>
  <dbu>0.001</dbu>
  <default-grids>0.1,0.5,1,2,2.5,5,7.5,10,100</default-grids>
- </base-path>
- <original-base-path>C:\Users\Equipo1\KLayout\tech\CIDESI_CM05</original-base-path>
- <layer-properties_file>C:/Users/Equipo1/KLayout/tech/CIDESI_CM05/CIDESI_CM05.lyp</layer-properties_file>
+ <base-path/>
+ <original-base-path>C:\Users\Equipo1\KLayout\salt\CIDESI_CM05</original-base-path>
+ <layer-properties_file>CIDESI_CM05.lyp</layer-properties_file>
  <add-other-layers>true</add-other-layers>
  <reader-options>
   <gds2>
