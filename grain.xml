@@ -3,7 +3,7 @@
  <name>CIDESI_CM05</name>
  <token/>
  <hidden>false</hidden>
- <version>0.2</version>
+ <version>0.3</version>
  <api-version/>
  <title>Proceso CMOS CIDESI_CM05</title>
  <doc>Paquete de tecnología para proceso CMOS CIDESI_CM05 compatible con esquema MPW del Laboratorio Nacional de Micro y Nano Tecnologías, CIDESI.</doc>
