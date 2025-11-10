@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <klayout-macro>
- <description>LVS for CIDESI_CM05</description>
+ <description>LVS para CIDESI_CM05</description>
  <version>0.1</version>
  <category>lvs</category>
  <prolog/>
