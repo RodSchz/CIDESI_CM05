@@ -279,7 +279,7 @@
   <dither-pattern>I1</dither-pattern>
   <line-style/>
   <valid>true</valid>
-  <visible>false</visible>
+  <visible>true</visible>
   <transparent>false</transparent>
   <width>2</width>
   <marked>false</marked>
@@ -297,7 +297,7 @@
   <dither-pattern>I1</dither-pattern>
   <line-style/>
   <valid>true</valid>
-  <visible>false</visible>
+  <visible>true</visible>
   <transparent>false</transparent>
   <width>2</width>
   <marked>false</marked>
@@ -315,7 +315,7 @@
   <dither-pattern>I8</dither-pattern>
   <line-style/>
   <valid>true</valid>
-  <visible>false</visible>
+  <visible>true</visible>
   <transparent>false</transparent>
   <width>1</width>
   <marked>false</marked>
@@ -369,7 +369,7 @@
   <dither-pattern>C40</dither-pattern>
   <line-style/>
   <valid>true</valid>
-  <visible>false</visible>
+  <visible>true</visible>
   <transparent>false</transparent>
   <width>1</width>
   <marked>false</marked>
