@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <klayout-macro>
- <description>LVS Local</description>
- <version>0.1</version>
+ <description>LVS para CIDESI_CM05</description>
+ <version>0.2</version>
  <category>lvs</category>
  <prolog/>
  <epilog/>
@@ -30,7 +30,7 @@ deep
 report_lvs
 
 #use_globals = ($use_globals.to_s.downcase == "true")
-use_globals = "false"
+use_globals = "true"
 
 # --- Entrada opcional (cuando se ejecuta por "Run DRC/LVS") ---
 if $input
@@ -90,9 +90,9 @@ ngate   = nactive &amp; poly
 nsd     = nactive - ngate
 
 # ===== antes: chip = extent.sized(100)
-#chip2 = extent.sized(0)           # usa la extensión completa sin ‘colchón’ arbitrario
+chip2 = extent.sized(0)           # usa la extensión completa sin ‘colchón’ arbitrario
 #chip = chip2 + die
-psub = chip - nwell
+psub = (chip + chip2) - nwell
 
 # --------- Conectividad ----------
 connect(psd,  cta)
@@ -118,8 +118,8 @@ connect(m2, m2_lbl)
 # (Opcional) Globales de respaldo
 if use_globals == "true"
   puts "Usando nodos globales"
-  connect_global(psub,  "VSS")
-  connect_global(nwell, "VDD")
+  connect_global(psub,  "GND")
+  #connect_global(nwell, "VDD")
 end
 
 # ===========================================================
