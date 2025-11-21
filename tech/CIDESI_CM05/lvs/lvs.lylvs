@@ -156,7 +156,7 @@ connect(term_poly, ctp)
 
 # TODO corregir clases vacias de R_POLY para compatibilidad con LTSpice
 extract_devices(resistor("R_METAL1", rho_m1),    { "R" =&gt; body_m1,    "C" =&gt; res_term })
-extract_devices(resistor("RPOLY",   rho_poly),  { "R" =&gt; body_poly,  "C" =&gt; term_poly })
+extract_devices(resistor("TC1=1.5e-3",   rho_poly),  { "R" =&gt; body_poly,  "C" =&gt; term_poly })
 extract_devices(resistor("R_NDIFF",  rho_ndiff), { "R" =&gt; body_ndiff, "C" =&gt; res_term })
 extract_devices(resistor("R_PDIFF",  rho_pdiff), { "R" =&gt; body_pdiff, "C" =&gt; res_term })
 
@@ -239,3 +239,4 @@ target_netlist(out_path,
 
 </text>
 </klayout-macro>
+
