@@ -1,0 +1,100 @@
+****************************************************
+* CIDESI_CM05 - Modelos (MOS + Pasivos)
+* Rev: preliminar
+* Nota: Los valores de R y C se ponen en la instancia.
+*       Los modelos pasivos agregan TC1/TC2 (y ruido en R si se habilita).
+****************************************************
+
+* ============================
+*  TRANSISTORES (LEVEL = 3)
+* ============================
+
+.model CIDNMOS NMOS (
++ LEVEL   = 3
++ TOX     = 5.0249e-08
++ NSUB    = 1.79729e+15
++ GAMMA   = 0.546939
++ PHI     = 0.338776
++ VTO     = 0.583673
++ DELTA   = 1.36735
++ UO      = 539
++ ETA     = 0.816327
++ THETA   = 0.0408163
++ KP      = 2.1e-05
++ VMAX    = 1.71511e+06
++ RSH     = 34.1451
++ LD      = 1.9e-07
++ CGDO    = 1.31e-10
++ CGSO    = 1.31e-10
++ CGBO    = 1.00e-11
++ CJ      = 2.09e-4
++ MJ      = 0.5
++ CJSW    = 3.68e-11
++ MJSW    = 0.33
++ XJ      = 1.76e-07)
+
+.model CIDPMOS PMOS (
++ LEVEL   = 3
++ TOX     = 2.5e-08
++ NSUB    = 6.455e+16
++ GAMMA   = 1.067
++ PHI     = 0.793
++ VTO     = -0.981413
++ DELTA   = 0.16129
++ UO      = 150
++ ETA     = 0.850427
++ THETA   = 0.0641026
++ KP      = 1.92308e-05
++ VMAX    = 8.07712e+06
++ RSH     = 53.2121
++ LD      = 2.0e-07
++ CGDO    = 2.76e-10
++ CGSO    = 2.76e-10
++ CGBO    = 1.00e-11
++ CJ      = 8.205e-4
++ MJ      = 0.5
++ CJSW    = 4.32e-10
++ MJSW    = 0.33
++ XJ      = 5.27e-07)
+
+****************************************************
+* RESISTORES (modelo RES)
+* - R se define en la instancia
+* - TC1/TC2 aportan dependencia térmica
+****************************************************
+
+* Metal1: TC típico 800–1500 ppm/°C (ajusta tras medir)
+.model R_METAL1 RES (TC1=1.0e-3  TC2=0  TNOM=27 NOISE=1  KF=1e-24  AF=1.0)
+
+* Polysilicio alto-ohmiaje (HRES): mayor TC1 (ajusta tras medir)
+.model R_POLY RES (TC1=1.5e-3  TC2=0  TNOM=27 NOISE=1  KF=1e-22  AF=1.0)
+
+* Difusiones (orientativos)
+.model R_NDIFF RES (TC1=1.0e-3  TC2=0  TNOM=27)
+.model R_PDIFF RES (TC1=1.2e-3  TC2=0  TNOM=27)
+
+****************************************************
+* CAPACITORES (modelo CAP)
+* - C se define en la instancia
+* - TC1/TC2 aportan dependencia térmica
+****************************************************
+
+* Metal–Poly a través de ILD (MIP)
+.model C_MIP  CAP  (TC1=5e-4  TC2=0  TNOM=27)
+
+* Metal2–Metal1 a través de ILD (MiM de proceso genérico ILD)
+.model C_MIM  CAP  (TC1=2e-4  TC2=0  TNOM=27)
+
+****************************************************
+* OPCIONALES: variantes geométricas (déjalas comentadas
+* si el extractor ya pone el valor absoluto de R y C)
+****************************************************
+*.model R_POLY_GEO  RES  RSH=2500  DEFW=5u   NARROW=0
+*  ; Uso: Rxx n1 n2 R_POLY_GEO L=<um> W=<um>
+*
+*.model C_MIM_GEO   CAP  C=1.2e-16  CEDGE=0
+*  ; Uso: Cxx n1 n2 C_MIM_GEO A=<um2> P=<um>
+
+****************************************************
+* FIN DE ARCHIVO
+****************************************************
