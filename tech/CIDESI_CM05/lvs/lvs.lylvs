@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <klayout-macro>
- <description>LVS para CIDESI_CM05</description>
+ <description>LVS Local</description>
  <version>0.1</version>
  <category>lvs</category>
  <prolog/>
@@ -18,8 +18,10 @@
  <text># ===== CIDESI_CM05 — LVS + EXTRACCIÓN → SPICE =====================
 # Soporta:
 #  - MOS 4T (PMOS/NMOS)
-#  - Resistores: Metal1, Poly (sobre campo), NDiff (fuera de Nwell), PDiff (en Nwell)
+#  - Resistores: Metal1, Poly (sobre campo via HRES), NDiff, PDiff
+#                 Se incluiye dependencia de temperatura para Poly
 #  - Capacitores INTENCIONALES: MIP (M1–Poly), MiM (M2–M1)
+#                 Sin dependencia de temperatura para capacitores
 # Marcadores:
 #  - ResBody  70/0   ResTerm 70/1   (opcional Res.text 70/2)
 #  - CapBody  71/0   CapTermA 71/1  CapTermB 71/2   (opcional Cap.text 71/3)
@@ -46,7 +48,7 @@ active  = input(43,0)
 poly    = input(46,0)
 nplus   = input(45,0)
 pplus   = input(44,0)
-hres    = input(34,0)
+hres    = input(34,0)   # Poly de alta R para resistores
 
 ctp     = input(47,0)   # Contacto a poly
 cta     = input(48,0)   # Contacto a activo
@@ -54,19 +56,17 @@ m1      = input(49,0)
 via1    = input(50,0)
 m2      = input(51,0)
 
+chip     = input(100,0)  # Borde de corte de chip
+
 m1_lbl  = labels(49,1)
 m2_lbl  = labels(51,1)
+
 
 # --------- Marcadores resistores ----------
 res_body = input(70,0)     # ResBody.drawing
 res_term = input(70,1)     # ResTerm.drawing
 res_txt  = labels(70,2)    # Res.text (opcional)
 connect(res_term, res_txt) # nombres de terminal (opcional)
-# --- Conectividad  para marcadores de resistor (Opción A: terminal en M1)
-#connect(res_term, m1)    # ResTerm pertenece eléctricamente a M1
-#connect(res_term, ct)    # por si ResTerm cae sobre CONTACT en vez de M1
-#connect(res_term,m1_lbl)
-
 
 # --------- Marcadores capacitores ----------
 cap_body = input(71,0)     # CapBody.drawing
@@ -89,7 +89,9 @@ nactive = active_outside_nwell &amp; nplus
 ngate   = nactive &amp; poly
 nsd     = nactive - ngate
 
-chip = extent.sized(0)
+# ===== antes: chip = extent.sized(100)
+#chip2 = extent.sized(0)           # usa la extensión completa sin ‘colchón’ arbitrario
+#chip = chip2 + die
 psub = chip - nwell
 
 # --------- Conectividad ----------
@@ -103,11 +105,11 @@ connect(via1, m2)
 
 # taps de bulk
 nwellcontact = active_in_nwell &amp; nplus
-psubcontact = active_outside_nwell &amp; pplus
+psubcontact  = active_outside_nwell &amp; pplus
 connect(nwell, nwellcontact)
 connect(psub,  psubcontact)
-connect(nwellcontact,cta)
-connect(psubcontact,cta)
+connect(nwellcontact, cta)
+connect(psubcontact, cta)
 
 # propagación de nombres
 connect(m1, m1_lbl)
@@ -123,14 +125,14 @@ end
 # ===========================================================
 #        EXTRACCIÓN DE DISPOSITIVOS — MOS
 # ===========================================================
-extract_devices(mos4("PMOS"), {
+extract_devices(mos4("CIDPMOS"), {
   "SD" =&gt; psd, "G" =&gt; pgate, "W" =&gt; nwell,
-  "tD" =&gt; psd, "tS" =&gt; psd,  "tG" =&gt; poly, "tW" =&gt; nwell
+  "tD" =&gt; psd, "tS" =&gt; psd,  "tG" =&gt; poly, "tB" =&gt; nwell
 })
 
-extract_devices(mos4("NMOS"), {
+extract_devices(mos4("CIDNMOS"), {
   "SD" =&gt; nsd, "G" =&gt; ngate, "W" =&gt; psub,
-  "tD" =&gt; nsd, "tS" =&gt; nsd,  "tG" =&gt; poly, "tW" =&gt; psub
+  "tD" =&gt; nsd, "tS" =&gt; nsd,  "tG" =&gt; poly, "tB" =&gt; psub
 })
 
 # ===========================================================
@@ -147,13 +149,14 @@ rho_poly  = 2500.0
 rho_ndiff = 25.0
 rho_pdiff = 30.0
 
+# Para R_POLY permitimos conexión por M1 o ResTerm
 term_poly = res_term + m1
 connect(term_poly, res_txt)
-connect(term_poly, m1_lbl)
-#connect(term_poly, ctp)
+connect(term_poly, ctp)
 
+# TODO corregir clases vacias de R_POLY para compatibilidad con LTSpice
 extract_devices(resistor("R_METAL1", rho_m1),    { "R" =&gt; body_m1,    "C" =&gt; res_term })
-extract_devices(resistor("R_POLY",   rho_poly),  { "R" =&gt; body_poly,  "C" =&gt; term_poly})
+extract_devices(resistor("RPOLY",   rho_poly),  { "R" =&gt; body_poly,  "C" =&gt; term_poly })
 extract_devices(resistor("R_NDIFF",  rho_ndiff), { "R" =&gt; body_ndiff, "C" =&gt; res_term })
 extract_devices(resistor("R_PDIFF",  rho_pdiff), { "R" =&gt; body_pdiff, "C" =&gt; res_term })
 
@@ -176,6 +179,7 @@ extract_devices(capacitor("C_MIP", 5.0e-16), {
   "tB" =&gt; cap_tB
 })
 
+# TODO corregir clases vacias de C_MIM para compatibilidad con LTSpice
 # MiM: (M2 limpio ∧ M1 limpio)
 mim_body = cap_body &amp; m2_clean &amp; m1_clean
 extract_devices(capacitor("C_MIM", 1.2e-16), {
@@ -188,17 +192,50 @@ extract_devices(capacitor("C_MIM", 1.2e-16), {
 # ===========================================================
 #              PUERTOS Y SPICE
 # ===========================================================
+# ======= Nombre de archivo según la celda top =======
+def top_cell_name_fallback
+  # 1) Si se pasó -rd topcell=...
+  return $topcell if $topcell &amp;&amp; !$topcell.to_s.empty?
+
+  # 2) Si hay GUI activa, toma la celda activa
+  begin
+    mw = RBA::Application.instance.main_window
+    if mw
+      cv = mw.current_view&amp;.active_cellview
+      return cv.cell.name if cv &amp;&amp; cv.cell
+    end
+  rescue
+  end
+
+  # 3) Si ya hay netlist con circuitos, usa el primero
+  begin
+    nl = netlist
+    if nl &amp;&amp; nl.circuits &amp;&amp; nl.circuits.size &gt; 0
+      return nl.circuits.first.name
+    end
+  rescue
+  end
+
+  # 4) Respaldo
+  "extracted"
+end
+
+# Sanitiza para nombre de archivo (quita caracteres raros)
+base_name = top_cell_name_fallback.gsub(/[^A-Za-z0-9._-]+/, "_")
+out_path  = $out_spice || "#{base_name}.cir"
+
+# ====================================================
 netlist.make_top_level_pins
-#netlist.simplify           # útil desactivado al depurar
+# netlist.simplify           # útil desactivado al depurar
 netlist.purge
 netlist.purge_nets
 
 use_net_names = true
 with_comments = false
-out_path = $out_spice || "extracted.cir"
 
 target_netlist(out_path,
                write_spice(use_net_names, with_comments),
                "Extracted by KLayout (CIDESI_CM05, LNunT, CIDESI)")
+
 </text>
 </klayout-macro>
