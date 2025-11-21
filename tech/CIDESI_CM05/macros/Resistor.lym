@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<klayout-macro>
+ <description>Celda paramétrica para resistores</description>
+ <version>0.1</version>
+ <category/>
+ <prolog/>
+ <epilog/>
+ <doc/>
+ <autorun>true</autorun>
+ <autorun-early>false</autorun-early>
+ <priority>0</priority>
+ <shortcut/>
+ <show-in-menu>false</show-in-menu>
+ <group-name/>
+ <menu-path/>
+ <interpreter>ruby</interpreter>
+ <dsl-interpreter-name/>
+ <text># ============================================================
+# CIDESI_CM05 — PCell: Resistor Serpentina (Solución A: term. en M1)
+# Autor: Rodolfo Sánchez Fraga  |  Ajustes PCell por ChatGPT
+# Fecha: 2025-11
+#
+# - Capa de cuerpo: por defecto HRES (34/0) para resistores de poly
+# - Terminales en M1 (49/0) + marcadores LVS:
+#     * ResBody 70/0 (cubre el cuerpo del resistor)
+#     * ResTerm 70/1 (dos marcas en los pads/terminales)
+# - Etiquetas con DText -&gt; Text
+# - Corrección por esquinas configurable (k_corner por codo de 90°)
+# ============================================================
+
+module CIDESI_CM05_PCells
+  include RBA
+
+  class ResistorSerpentine &lt; PCellDeclarationHelper
+    include RBA
+
+    def initialize
+      super
+      # ---- Capas ----
+      param(:l_body,  TypeLayer, "Capa cuerpo (HRES/Poly alta R)", default: LayerInfo::new(34, 0))
+      param(:l_m1,    TypeLayer, "Capa Metal1 (pads)",             default: LayerInfo::new(49, 0))
+      param(:l_txt,   TypeLayer, "Capa texto (Metal1.text)",       default: LayerInfo::new(49, 1))
+      param(:l_rbody, TypeLayer, "Marcador ResBody (LVS)",         default: LayerInfo::new(70, 0))
+      param(:l_rterm, TypeLayer, "Marcador ResTerm (LVS)",         default: LayerInfo::new(70, 1))
+
+      # ---- Geometría eléctrica ----
+      param(:width_um,  TypeDouble, "Ancho de trazo (µm)",              default: 10.0)
+      param(:n_squares, TypeDouble, "# de cuadros objetivo",            default: 100.0)
+      param(:rsq,       TypeDouble, "Rsheet (Ω/□) (informativo)",       default: 2500.0)
+
+      # ---- Disposición de serpentín ----
+      param(:run_um,    TypeDouble, "Largo horizontal por finger (µm)", default: 100.0)
+      param(:pitch_um,  TypeDouble, "Paso vertical (centro a centro) (µm)", default: 20.0)
+
+      # ---- Pads M1 (Solución A) ----
+      param(:pad_len_um, TypeDouble, "Largo pad M1 (µm)", default: 20.0)
+      param(:pad_wid_um, TypeDouble, "Ancho pad M1 (µm)", default: 2.0)
+
+      # ---- Corrección por esquina ----
+      param(:k_corner,   TypeDouble, "Corrección por esquina (cuadros/90°)", default: 0.56)
+
+      # ---- Etiquetas ----
+      param(:label_a,    TypeString, "Etiqueta terminal A", default: "A")
+      param(:label_b,    TypeString, "Etiqueta terminal B", default: "B")
+    end
+
+    def display_text_impl
+      "R serp (#{format('%g', n_squares)} cuadros, W=#{format('%g', width_um)}µm, run=#{format('%g', run_um)}µm, pitch=#{format('%g', pitch_um)}µm)"
+    end
+
+    def coerce_parameters_impl
+      set_width_um(1.0)   if width_um &lt;= 0.0
+      set_run_um(5.0)     if run_um   &lt;= 0.0
+      set_pitch_um(width_um * 1.2) if pitch_um &lt; width_um * 1.0
+      set_pad_len_um([pad_len_um, width_um * 1.5].max)
+      set_pad_wid_um([pad_wid_um, width_um * 0.8].max)
+      set_n_squares(1.0)  if n_squares &lt;= 0.0
+      set_k_corner(0.0)   if k_corner &lt; 0.0
+    end
+
+    # Helpers: convertir geometría en micras (D*) a enteros (sin pérdida relevante)
+    def to_ipoint(dp, dbu)
+      RBA::Point.new((dp.x / dbu).round, (dp.y / dbu).round)
+    end
+
+    def to_ibox(db, dbu)
+      RBA::Box.new((db.left   / dbu).round,
+                   (db.bottom / dbu).round,
+                   (db.right  / dbu).round,
+                   (db.top    / dbu).round)
+    end
+
+    def produce_impl
+      ly   = layout
+      cell = self.cell
+      dbu  = ly.dbu      # µm por DBU
+
+      # Índices de capa
+      l_body_i  = ly.layer(l_body)
+      l_m1_i    = ly.layer(l_m1)
+      l_txt_i   = ly.layer(l_txt)
+      l_rbody_i = ly.layer(l_rbody)
+      l_rterm_i = ly.layer(l_rterm)
+
+      # Parámetros locales
+      w     = width_um
+      run   = run_um
+      p     = pitch_um
+      kcor  = k_corner
+
+      # ====== Estimación de fingers con corrección por esquinas ======
+      fingers = [(n_squares / (p / w)).ceil, 2].max
+      #puts "Cuadros: #{n_squares}"
+      #puts "Pitch: #{p}"
+      #puts "Width: #{w}"
+      #puts "Fingers: #{fingers}"
+      #2.times do
+      #  n_codos = [2 * (fingers - 1), 0].max
+      #  n_eff   = n_squares + kcor * n_codos
+      #  fingers = [((n_eff * w) / run).ceil, 2].max
+      #end
+      puts "Fingers: #{fingers}"
+      n_squares = fingers*(p/w)+((fingers)*3) 
+      puts "Cuadros: #{n_squares}"
+      
+      # ====== Construir polilínea del serpentín (centro del trazo) ======
+      pts = []
+      x = 0.0
+      y = 0.0
+      dir = +1
+      fingers.times do |i|
+        pts &lt;&lt; RBA::DPoint.new(x, y)
+        x += run
+        pts &lt;&lt; RBA::DPoint.new(x, y)
+        if i &lt; fingers - 1
+          y += p * dir
+          dir *= -1
+        end
+      end
+      pts &lt;&lt; RBA::DPoint.new(x, y) unless pts.last == RBA::DPoint.new(x, y)
+
+      # Path entero (DBU)
+      path_pts = pts.map { |dp| to_ipoint(dp, dbu) }
+      width_dbu = (w / dbu).round
+      path = RBA::Path.new(path_pts, width_dbu)
+
+      # Cuerpo físico (HRES / Poly de alta R)
+      cell.shapes(l_body_i).insert(path)
+
+      # Marcador ResBody (70/0): duplicamos el path del cuerpo
+      cell.shapes(l_rbody_i).insert(path)
+
+      # ====== Pads M1 (Solución A) y ResTerm ======
+      pA = pts.first
+      pB = pts.last
+
+      padA_box_d = RBA::DBox.new(pA.x - pad_len_um * 0.5, pA.y - pad_wid_um * 0.5,
+                                 pA.x + pad_len_um * 0.5, pA.y + pad_wid_um * 0.5)
+      padB_box_d = RBA::DBox.new(pB.x - pad_len_um * 0.5, pB.y - pad_wid_um * 0.5,
+                                 pB.x + pad_len_um * 0.5, pB.y + pad_wid_um * 0.5)
+
+      padA_box = to_ibox(padA_box_d, dbu)
+      padB_box = to_ibox(padB_box_d, dbu)
+
+      cell.shapes(l_m1_i).insert(padA_box)
+      cell.shapes(l_m1_i).insert(padB_box)
+
+      # ResTerm (70/1) como cajas más pequeñas dentro del pad
+      term_len = [pad_len_um * 0.5, w].max
+      term_wid = [pad_wid_um * 0.7, w].max
+
+      tA_d = RBA::DBox.new(pA.x - term_len * 0.5, pA.y - term_wid * 0.5,
+                           pA.x + term_len * 0.5, pA.y + term_wid * 0.5)
+      tB_d = RBA::DBox.new(pB.x - term_len * 0.5, pB.y - term_wid * 0.5,
+                           pB.x + term_len * 0.5, pB.y + term_wid * 0.5)
+
+      cell.shapes(l_rterm_i).insert(to_ibox(tA_d, dbu))
+      cell.shapes(l_rterm_i).insert(to_ibox(tB_d, dbu))
+
+      # ====== Etiquetas (DText -&gt; Text) sobre los pads ======
+      h_txt_um = [w * 0.8, 2.0].max
+
+      dta        = RBA::DText.new
+      dta.string = label_a.to_s
+      dta.size   = h_txt_um
+      dta.trans  = RBA::DTrans.new(padA_box_d.center.x, padA_box_d.center.y)  # &lt;&lt;--- DTrans (no DCplxTrans)
+      cell.shapes(l_txt_i).insert(RBA::Text.new(dta))
+
+      dtb        = RBA::DText.new
+      dtb.string = label_b.to_s
+      dtb.size   = h_txt_um
+      dtb.trans  = RBA::DTrans.new(padB_box_d.center.x, padB_box_d.center.y)  # &lt;&lt;--- DTrans (no DCplxTrans)
+      cell.shapes(l_txt_i).insert(RBA::Text.new(dtb))
+    end
+  end
+
+  # ------- Librería que registra la PCell -------
+  class CM05ResLib &lt; Library
+    def initialize
+      self.description = "CIDESI_CM05 — PCells de Resistor Serpentina (Solución A)"
+      layout.register_pcell("ResistorSerpentine", ResistorSerpentine::new)
+      register("CM05_ResLib")
+    end
+  end
+
+  CM05ResLib::new
+end
+</text>
+</klayout-macro>
