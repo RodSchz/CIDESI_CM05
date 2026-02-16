@@ -1,50 +1,509 @@
-<html>
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CM05 - Documento de Proceso y Guía de Diseño Físico (MPW)</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --card:#121a33;
+      --card2:#0f1730;
+      --text:#eaf0ff;
+      --muted:#b7c4e4;
+      --line:#2a3a66;
+      --accent:#6aa8ff;
+      --ok:#39d98a;
+      --warn:#ffcc66;
+      --danger:#ff7d7d;
+      --chip:#1b2850;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif}
+    a{color:#9ac2ff;text-decoration:none}
+    a:hover{text-decoration:underline}
+    .container{max-width:1200px;margin:0 auto;padding:20px}
+    .hero{
+      background:linear-gradient(135deg,#18244a 0%, #0e1835 70%);
+      border:1px solid var(--line); border-radius:16px; padding:20px; margin-bottom:16px;
+      box-shadow:0 8px 30px rgba(0,0,0,.25);
+    }
+    .hero h1{margin:0 0 6px 0;font-size:28px}
+    .subtitle{color:var(--muted);margin:0}
+    .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .chip{
+      background:var(--chip); border:1px solid var(--line); color:#cfe0ff; padding:4px 10px; border-radius:999px; font-size:12px;
+    }
+
+    .toc{
+      background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:16px;
+    }
+    .toc h3{margin:0 0 8px 0;font-size:16px}
+    .toc ul{margin:0;padding-left:18px;columns:2;column-gap:24px}
+    @media (max-width:900px){ .toc ul{columns:1} }
+
+    section{
+      background:var(--card); border:1px solid var(--line); border-radius:14px;
+      padding:16px; margin-bottom:14px;
+    }
+    section h2{margin:0 0 10px 0;font-size:21px}
+    section h3{margin:14px 0 8px 0;font-size:17px;color:#d6e4ff}
+    p{margin:8px 0}
+    ul{margin:8px 0 8px 18px}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width:900px){ .grid-2{grid-template-columns:1fr} }
+
+    .note,.warn,.ok{
+      border-radius:10px;padding:10px 12px;margin:10px 0;border:1px solid transparent;
+    }
+    .note{background:#122346;border-color:#2a4a86;color:#d7e8ff}
+    .warn{background:#3c2c10;border-color:#7f5b1b;color:#ffe6b0}
+    .ok{background:#113321;border-color:#1e6a43;color:#c8ffe6}
+
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    th,td{border:1px solid var(--line);padding:8px 9px;vertical-align:top}
+    th{background:var(--card2);text-align:left}
+    tbody tr:nth-child(even){background:#101a36}
+    .small{font-size:13px;color:var(--muted)}
+    .mono{font-family:Consolas,Monaco,Menlo,monospace;font-size:13px}
+    .footer{
+      margin-top:18px;color:var(--muted);font-size:13px;
+      border-top:1px solid var(--line);padding-top:10px
+    }
+    details{
+      border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#101a36;margin:10px 0;
+    }
+    summary{cursor:pointer;font-weight:600}
+    .kpi{
+      display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:8px
+    }
+    @media (max-width:1000px){.kpi{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width:560px){.kpi{grid-template-columns:1fr}}
+    .kpi .card{
+      border:1px solid var(--line);border-radius:10px;padding:10px;background:#101a36
+    }
+    .kpi .card .t{font-size:12px;color:var(--muted)}
+    .kpi .card .v{font-size:20px;font-weight:700}
+    .tag{padding:2px 8px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:#cfe0ff;background:#15224a}
+    .row-tags{display:flex;gap:6px;flex-wrap:wrap}
+  </style>
+</head>
 <body>
+  <div class="container">
 
-<h1>Your new Package</h1>
+    <header class="hero">
+      <h1>CIDESI_CM05 · Documento de Proceso y Guía de Diseño Físico (MPW)</h1>
+      <p class="subtitle">Versión preliminar para capacitación y prueba piloto multiproyecto.</p>
+      <div class="meta">
+        <span class="chip">Proceso: CM05</span>
+        <span class="chip">Enfoque: Diseño físico + fabricación</span>
+        <span class="chip">Uso: Curso / MPW</span>
+      </div>
+        <div style="margin-top:12px; border-top:1px solid var(--line); padding-top:10px;">
+    <p style="margin:4px 0;"><b>Laboratorio Nacional de Micro y Nano Tecnologías</b>  </p>
+    <p style="margin:4px 0;"><b>Institución:</b> Centro de Ingeniería y Desarrollo Industrial (CIDESI)</p>
+    <p style="margin:4px 0;"><b>Programa:</b> Esquema MPW y Capacitación en Diseño de Circuitos Integrados</p>
+    <p style="margin:4px 0;"><b>Autor:</b> Rodolfo Sánchez Fraga</p>
+    <p style="margin:4px 0;"><b>Coautores:</b> Gonzalo Lastra Medina</p>
+    <p style="margin:4px 0;"><b>Correo de contacto:</b> rodolfo.sanchez@cidesi.edu.mx</p>
+  </div>
+    </header>
 
-<p>
-Your new package is there! You can edit the package properties in the package manager. 
-Use the edit button in the upper right corner of the package details panel to
-open the package editor.
-</p>
+    
 
-<p>
-Here is what you should do:
-</p>
+    <nav class="toc">
+      <h3>Contenido</h3>
+      <ul>
+        <li><a href="#alcance">1) Alcance y objetivo</a></li>
+        <li><a href="#resumen">2) Resumen técnico de CM05</a></li>
+        <li><a href="#terminologia">3) Terminología clave</a></li>
+        <li><a href="#flujo">4) Flujo de diseño a fabricación</a></li>
+        <li><a href="#capas">5) Mapa de capas (archivo proporcionado)</a></li>
+        <li><a href="#reglas">6) Reglas de diseño (plantilla)</a></li>
+        <li><a href="#dispositivos">7) Dispositivos y celdas esperadas</a></li>
+        <li><a href="#drc-lvs">8) Checklist DRC/LVS/PEX</a></li>
+        <li><a href="#entregables">9) Entregables MPW</a></li>
+        <li><a href="#didactica">10) Ruta didáctica sugerida</a></li>
+        <li><a href="#anexo">11) Anexo: capas especiales</a></li>
+      </ul>
+    </nav>
 
-<ul>
-  <li>Enter your author details</li>
-  <li>Choose a license model</li>
-  <li>Provide an icon and optionally a screenshot image</li>
-  <li>Complete the technology definition</li>
-  <li>Specify dependencies if you plan to use items from other packages</li>
-</ul>
+    <section id="alcance">
+      <h2>1) Alcance y objetivo</h2>
+      <p>
+        Este documento define una base técnica y operativa para trabajar con el proceso <b>CIDESI_CM05</b> en un esquema
+        de <b>MPW (oblea multiproyecto)</b>, incluyendo nomenclatura de capas, flujo FEOL/BEOL, flujo de diseño (front-end/back-end EDA),
+        verificación (DRC/LVS/PEX) y entregables para fabricación.
+      </p>
+      <div class="note">
+        <b>Objetivo práctico:</b> reducir iteraciones de corrección y estandarizar la preparación de layouts para circuitos base.
+      </div>
+    </section>
 
-<p>
-Of course, the most interesting thing is how to edit the technology definition.
-When the package was initialized, a folder hierarchy consisting of a tech
-folder containing a technology definition file and empty "libraries", "macros", 
-"pymacros" and "drc" folders was created. You can use these empty folders
-to put your own files there. The technology definition can be edited in the
-technology manager where you can find the technology as "new_tech" under the
-name you had given the package. Initially, the technology definition is 
-without any particular definitions.
-</p>
+    <section id="resumen">
+      <h2>2) Resumen técnico de CIDESI_CM05</h2>
+      <div class="grid-2">
+        <div>
+          <h3>Descripción general</h3>
+          <ul>
+            <li>Proceso CMOS con pozo N, región activa, compuerta de polisilicio y dos niveles de de interconexión.</li>
+            <li>Soporta rutas de diseño analógico.</li>
+            <li>Soporta para ruta de diseño digital en desarrollo.</li>
+            <li>Preparado para flujo de capacitación y prototipado MPW.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Bloques esperados de proceso</h3>
+          <ul>
+            <li><b>FEOL:</b> pozo (Nwell), active, implantación (Nselect/Pselect), poly.</li>
+            <li><b>MOL:</b> contactos a active/poly.</li>
+            <li><b>BEOL:</b> Metal1 y Metal2 + vía entre niveles + pasivación/overglass + pads.</li>
+          </ul>
+        </div>
+      </div>
 
-<p>
-In the package details you will find the local path to your package
-data under "Installation". You can use any versioning system to manage your
-files there. 
-</p>
+      <div class="kpi">
+        <div class="card">
+          <div class="t">Niveles metálicos</div>
+          <div class="v">2</div>
+        </div>
+        <div class="card">
+          <div class="t">Vías</div>
+          <div class="v">1</div>
+        </div>
+        <div class="card">
+          <div class="t">Capas de resistor dedicadas</div>
+          <div class="v">No</div>
+        </div>
+        <div class="card">
+          <div class="t">Capas de capacitor dedicadas</div>
+          <div class="v">No</div>
+        </div>
+      </div>
+    </section>
 
-<p>
-Once you have finished your package, don't forget to specify the package version
-so users of you package will be informed of updates. Finally you can publish the
-package files to a place of your choice and submit the download URL to the 
-Salt Mine server.
-</p>
+    <section id="terminologia">
+      <h2>3) Terminología clave</h2>
+      <div class="grid-2">
+        <div>
+          <h3>Flujo de diseño (EDA)</h3>
+          <ul>
+            <li><b>Front-end design:</b> especificación, esquema, simulación, HDL/síntesis lógica.</li>
+            <li><b>Back-end design:</b> floorplan, placement/routing, extracción, cierre físico.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Flujo de fabricación</h3>
+          <ul>
+            <li><b>FEOL:</b> formación de dispositivos.</li>
+            <li><b>BEOL:</b> interconexión metálica y pasivación.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="ok">
+        Esta distinción ayuda a evitar confusiones: “front/back” en EDA <i>no</i> es lo mismo que FEOL/BEOL en planta.
+      </div>
+    </section>
 
+    <section id="flujo">
+      <h2>4) Flujo de diseño a fabricación (CM05)</h2>
+      <ol>
+        <li><b>Definición del bloque:</b> función, especificaciones eléctricas y de área.</li>
+        <li><b>Diseño esquemático y simulación:</b> netlist de referencia, corners preliminares.</li>
+        <li><b>Layout:</b> construcción geométrica con stack de capas CM05.</li>
+        <li><b>DRC:</b> validación de reglas geométricas/topológicas.</li>
+        <li><b>LVS:</b> consistencia esquema ↔ layout.</li>
+        <li><b>PEX:</b> extracción de parásitos y cierre de desempeño.</li>
+        <li><b>Sign-off MPW:</b> GDS/OASIS, checklist y documentación.</li>
+        <li><b>Fabricación y caracterización:</b> eléctrica, funcional y de confiabilidad.</li>
+      </ol>
+    </section>
+
+    <section id="capas">
+      <h2>5) Mapa de capas CM05</h2>
+      <p class="small">
+        Se listan capas clave para documentación de proceso, construcción de PDK y uso para diseño.
+      </p>
+
+      <h3>5.1 Capas núcleo de proceso</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Función</th>
+            <th>Nombre de capa</th>
+            <th>Layer/Datatype</th>
+            <th>Notas</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!--<tr><td>Pozos</td><td>DeepNwell.drawing</td><td class="mono">38/0</td><td>Aislamiento profundo / triple-well (si aplica).</td></tr>-->
+          <tr><td>Pozos</td><td>Nwell.drawing</td><td class="mono">42/0</td><td>Pozo N para PMOS.</td></tr>
+          <!-- <tr><td>Pozos</td><td>Pwell.drawing</td><td class="mono">41/0</td><td>Pozo P para NMOS.</td></tr> -->
+          <tr><td>Activa</td><td>Active.drawing</td><td class="mono">43/0</td><td>Región de difusión.</td></tr>
+          <tr><td>Polisilicio</td><td>Poly.drawing</td><td class="mono">46/0</td><td>Compuertas y/o resistivo poly (según regla).</td></tr>
+          <tr><td>Implantes</td><td>Nselect.drawing</td><td class="mono">45/0</td><td>Selección N+.</td></tr>
+          <tr><td>Implantes</td><td>Pselect.drawing</td><td class="mono">44/0</td><td>Selección P+.</td></tr>
+          <!-- <tr><td>Contacto</td><td>Contact.drawing</td><td class="mono">25/0</td><td>Contacto base.</td></tr> -->
+          <tr><td>Contacto especializado</td><td>ContactPoly.drawing</td><td class="mono">47/0</td><td>Contacto a poly.</td></tr>
+          <tr><td>Contacto especializado</td><td>ContactActive.drawing</td><td class="mono">48/0</td><td>Contacto a active/difusión.</td></tr>
+          <tr><td>Metal 1</td><td>Metal1.drawing</td><td class="mono">49/0</td><td>Primer nivel de ruteo.</td></tr>
+          <tr><td>Vía M1-M2</td><td>Via.drawing</td><td class="mono">50/0</td><td>Interconexión vertical.</td></tr>
+          <tr><td>Metal 2</td><td>Metal2.drawing</td><td class="mono">51/0</td><td>Ruteo intermedio.</td></tr>
+          <!-- <tr><td>Vía M2-M3</td><td>Via2.drawing</td><td class="mono">61/0</td><td>Interconexión vertical.</td></tr> -->
+          <!-- <tr><td>Metal 3</td><td>Metal3.drawing</td><td class="mono">62/0</td><td>Ruteo intermedio.</td></tr> -->
+          <!-- <tr><td>Vía M3-M4</td><td>Via3.drawing</td><td class="mono">30/0</td><td>Interconexión vertical.</td></tr> -->
+          <!-- <tr><td>Metal 4</td><td>Metal4.drawing</td><td class="mono">31/0</td><td>Ruteo global/local.</td></tr> -->
+          <!-- <tr><td>Vía M4-M5</td><td>Via4.drawing</td><td class="mono">32/0</td><td>Interconexión vertical.</td></tr> -->
+          <!-- <tr><td>Metal 5</td><td>Metal5.drawing</td><td class="mono">33/0</td><td>Ruteo global.</td></tr> -->
+          <!-- <tr><td>Vía M5-M6</td><td>Via5.drawing</td><td class="mono">36/0</td><td>Interconexión vertical.</td></tr> -->
+          <!-- <tr><td>Metal 6</td><td>Metal6.drawing</td><td class="mono">37/0</td><td>Ruteo global.</td></tr> -->
+          <!-- <tr><td>Vía M6-M7</td><td>Via6.drawing</td><td class="mono">127/0</td><td>Interconexión vertical.</td></tr> -->
+          <!-- <tr><td>Metal 7</td><td>Metal7.drawing</td><td class="mono">126/0</td><td>Ruteo global.</td></tr> -->
+          <!-- <tr><td>Vía M7-M8</td><td>Via7.drawing</td><td class="mono">129/0</td><td>Interconexión vertical.</td></tr> -->
+          <!-- <tr><td>Metal 8</td><td>Metal8.drawing</td><td class="mono">53/0</td><td>Ruteo global.</td></tr> -->
+          <!-- <tr><td>Vía M8-M9</td><td>Via8.drawing</td><td class="mono">26/0</td><td>Revisar colisión con capa de pads.</td></tr> -->
+          <!-- <tr><td>Metal 9</td><td>Metal9.drawing</td><td class="mono">54/0</td><td>Ruteo superior/distribución.</td></tr> -->
+          <tr><td>Pasivación</td><td>Glass.drawing</td><td class="mono">52/0</td><td>Aperturas/superficie final.</td></tr>
+          <tr><td>Pad</td><td>Pads.drawing</td><td class="mono">26/0</td><td>Comparte layer/datatype con Via8 en este archivo.</td></tr>
+          <tr><td>Texto/labels</td><td>Text.drawing</td><td class="mono">63/0 y 83/0</td><td>Anotación/no funcional eléctrica.</td></tr>
+          <tr><td>Contorno de dado</td><td>Die.outline</td><td class="mono">100/0</td><td>Límite de chip.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>5.2 Capas paramétricas de pasivos</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Dispositivo</th>
+            <th>Capa</th>
+            <th>Layer/Datatype</th>
+            <th>Uso típico</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Resistor</td><td>ResBody.drawing</td><td class="mono">70/0</td><td>Cuerpo resistivo.</td></tr>
+          <tr><td>Resistor</td><td>ResTerm.drawing</td><td class="mono">70/1</td><td>Terminales.</td></tr>
+          <tr><td>Resistor</td><td>Res.text</td><td class="mono">70/2</td><td>Etiqueta/valor.</td></tr>
+          <tr><td>Capacitor</td><td>CapBody.drawing</td><td class="mono">71/0</td><td>Área activa del capacitor.</td></tr>
+          <tr><td>Capacitor</td><td>CapTermA.drawing</td><td class="mono">71/1</td><td>Terminal A.</td></tr>
+          <tr><td>Capacitor</td><td>CapTermB.drawing</td><td class="mono">71/2</td><td>Terminal B.</td></tr>
+          <tr><td>Capacitor</td><td>Cap.text</td><td class="mono">71/3</td><td>Etiqueta/valor.</td></tr>
+        </tbody>
+      </table>
+
+      <!-- <h3>5.3 Observaciones críticas del archivo</h3> 
+      <table>
+        <thead>
+          <tr>
+            <th>Colisión / Ambigüedad</th>
+            <th>Evidencia</th>
+            <th>Impacto potencial</th>
+            <th>Acción recomendada</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Via8 y Pads comparten <span class="mono">26/0</span></td>
+            <td>Via8.drawing = 26/0 y Pads.drawing = 26/0</td>
+            <td>Confusión en extracción/DRC/LVS, net recognition incorrecto</td>
+            <td>Separar por datatype o capa distinta; si no es posible, diferenciar por contexto geométrico y reglas.</td>
+          </tr>
+          <tr>
+            <td>ThickActive y pBase comparten <span class="mono">60/0</span></td>
+            <td>Ambas entradas apuntan a 60/0</td>
+            <td>Ambigüedad semántica en PDK/documentación</td>
+            <td>Definir alias oficial y reglas de prioridad en DRC/LVS.</td>
+          </tr>
+          <tr>
+            <td>Entradas con <code>&lt;name/&gt;</code> vacío</td>
+            <td>Res/Cap y capas CS_* sin nombre legible</td>
+            <td>Menor trazabilidad para formación/QA</td>
+            <td>Normalizar nomenclatura visible en .lyp / docs.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="warn">
+        Antes de congelar el PDK: valida que todas las capas eléctricas tengan una interpretación unívoca en DRC/LVS/PEX
+        y evita layer/datatype compartidos entre funciones diferentes.
+      </div> -->
+    </section>
+
+    <section id="reglas">
+      <h2>6) Reglas de diseño mínimas </h2>
+      <p>
+        Esta tabla se deja en formato editable para incorporar los valores oficiales de CM05
+        (ancho/espaciado/encierro/solape/extensión) cuando estén consolidados.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Regla</th>
+            <th>Valor</th>
+            <th>Unidad</th>
+            <th>Aplica a</th>
+            <th>Comentario</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>1.2 Nwell spacing & enclosure</td><td>22.5</td><td>µm</td><td>Wells</td><td>Aislamiento y latch-up</td></tr>
+          <tr><td>2.1 Min width active</td><td>7.5</td><td>µm</td><td>Active</td><td>Geometría mínima de difusión</td></tr>
+          <tr><td>2.2 Min spacing active-active</td><td>7.5</td><td>µm</td><td>Active</td><td>Separación mínima</td></tr>
+          <tr><td>3.1 Min width poly</td><td>5.0</td><td>µm</td><td>Poly</td><td>Compuerta y trazos poly</td></tr>
+          <tr><td>3.2 Min spacing poly</td><td>5.0</td><td>µm</td><td>Poly</td><td>Separación mínima</td></tr>
+          <tr><td>3.2a Poly over active (gate extension)</td><td>5.0</td><td>µm</td><td>Poly/Active</td><td>Extensión sobre active</td></tr>
+          <tr><td>5.1 Contact size</td><td>5.0</td><td>µm</td><td>Contact</td><td>Tamaño de contacto exacto</td></tr>
+          <tr><td>5.3 Contact space</td><td>5.0</td><td>µm</td><td>Contact</td><td>Espacio entre contactos</td></tr>
+          <tr><td>5.2/6.2 Contact enclosure by poly/active</td><td>2.5</td><td>µm</td><td>Contact/Active/Poly</td><td>Encierro por poly o active</td></tr>
+          <tr><td>7.3 Contact enclosure by M1</td><td>2.5</td><td>µm</td><td>Contact/M1</td><td>Encierro por metal1</td></tr>
+          <tr><td>7.1 Min width metal (M1...M2)</td><td>7.5</td><td>µm</td><td>Metales</td><td>Por nivel</td></tr>
+          <tr><td>7.2 Min spacing metal (M1...M2)</td><td>5.0</td><td>µm</td><td>Metales</td><td>Por nivel</td></tr>
+          <tr><td>8.3 Via enclosure by upper/lower metal</td><td>2.5</td><td>µm</td><td>Vías</td><td>Por transición</td></tr>
+        </tbody>
+      </table>
+      <div class="note">
+        Recomendación: Utilizar extensión de polisilicio sobre active de 5.0µm.
+      </div>
+    </section>
+
+    <section id="dispositivos">
+      <h2>7) Dispositivos y celdas esperadas en CM05</h2>
+      <div class="grid-2">
+        <div>
+          <h3>Dispositivos primarios</h3>
+          <ul>
+            <li>NMOS / PMOS (core, y variantes con deep nwell si aplica).</li>
+            <li>Resistores (capas 70/x), incluyendo versión high-res si está habilitada.</li>
+            <li>Capacitores (capas 71/x y/o metálicos dedicados si aplica).</li>
+            <li>Diodos/parásitos modelables por unión.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Celdas base sugeridas (curso + MPW)</h3>
+          <ul>
+            <li>Inversor CMOS unitario (benchmark LVS/PEX).</li>
+            <li>Espejo de corriente simple/cascodo.</li>
+            <li>Celda resistor/capacitor paramétrica con labels.</li>
+            <li>Estructuras de test: Kelvin, cadena de vías, comb/serpentine.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="row-tags">
+        <span class="tag">Analog</span>
+        <span class="tag">Digital</span>
+        <span class="tag">PCells</span>
+        <span class="tag">Monitores de proceso</span>
+      </div>
+    </section>
+
+    <section id="drc-lvs">
+      <h2>8) Checklist DRC / LVS / PEX (pre-tapeout)</h2>
+      <h3>8.1 DRC</h3>
+      <ul>
+        <li>Sin errores críticos (0 hard errors).</li>
+        <li>Warnings revisados y justificados por escrito.</li>
+        <li>Revisión explícita de capas con colisión de layer/datatype.</li>
+      </ul>
+
+      <h3>8.2 LVS</h3>
+      <ul>
+        <li>Top-cell y subceldas con coincidencia esquema ↔ layout.</li>
+        <li>Nets globales definidas (VDD/VSS/GND, según convención).</li>
+        <li>Mapeo de terminales consistente en todos los dispositivos.</li>
+      </ul>
+
+      <h3>8.3 PEX y cierre</h3>
+      <ul>
+        <li>Parásitos RC extraídos en bloques críticos.</li>
+        <li>Simulación post-layout dentro de ventana objetivo.</li>
+        <li>Reporte de sensibilidad (PVT / dispersión de interconexión).</li>
+      </ul>
+
+      <div class="ok">
+        Criterio de salida recomendado: <b>DRC limpio + LVS limpio + post-layout validado</b> en al menos los bloques de riesgo.
+      </div>
+    </section>
+
+    <section id="entregables">
+      <h2>9) Entregables MPW</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Entregable</th>
+            <th>Formato</th>
+            <th>Estado</th>
+            <th>Observaciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Layout final top-level</td><td>GDSII / OASIS</td><td>☐</td><td>Con estructura de jerarquía validada</td></tr>
+          <tr><td>Reporte DRC</td><td>TXT/PDF</td><td>☐</td><td>Sin errores críticos</td></tr>
+          <tr><td>Reporte LVS</td><td>TXT/PDF</td><td>☐</td><td>Match completo</td></tr>
+          <tr><td>Netlist post-layout</td><td>SPICE</td><td>☐</td><td>Incluyendo parásitos clave</td></tr>
+          <tr><td>Resumen técnico del bloque</td><td>PDF/HTML</td><td>☐</td><td>Objetivo, condiciones, resultados esperados</td></tr>
+          <tr><td>Plan de caracterización</td><td>PDF/XLSX</td><td>☐</td><td>Matriz de pruebas y criterios de aceptación</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- <section id="didactica"> 
+      <h2>10) Ruta didáctica sugerida (CM05 después de TFS20)</h2>
+      <ol>
+        <li><b>Sesión 1:</b> Terminología FEOL/BEOL vs FE/BE de diseño + lectura del stack de capas.</li>
+        <li><b>Sesión 2:</b> Layout de inversor CMOS (devices + contactos + M1/M2 + labels).</li>
+        <li><b>Sesión 3:</b> DRC/LVS del inversor y corrección guiada de errores frecuentes.</li>
+        <li><b>Sesión 4:</b> Bloque analógico simple (espejo de corriente) y consideraciones de matching.</li>
+        <li><b>Sesión 5:</b> PEX básico + checklist de sign-off + paquete de entrega MPW.</li>
+      </ol>
+      <div class="note">
+        Narrativa recomendada: “de un tapeout sencillo (TFS20/RTD) a un circuito CMOS integrado (CM05)”.
+      </div>
+    </section>
+    -->
+
+    <section id="anexo">
+      <h2>11) Anexo · Capas especiales utilizadas en visualización de corte transversal (Xsection)</h2>
+
+      <details>
+        <summary>Ver capas CS_* (300–313) detectadas en el archivo</summary>
+        <table>
+          <thead>
+            <tr>
+              <th>Capa</th>
+              <th>Layer/Datatype</th>
+              <th>Interpretación sugerida</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>CS_NWELL</td><td class="mono">300/0</td><td>Marcador/derivado para control de pozo</td></tr>
+            <tr><td>CS_FOX</td><td class="mono">301/0</td><td>Campo óxido (derivado o documentación)</td></tr>
+            <tr><td>CS_GOX</td><td class="mono">301/1</td><td>Óxido de compuerta (marcador)</td></tr>
+            <tr><td>CS_POLY</td><td class="mono">302/0</td><td>Polisilicio derivado</td></tr>
+            <tr><td>CS_NPLUS</td><td class="mono">303/0</td><td>Implante N+ derivado</td></tr>
+            <tr><td>CS_PPLUS</td><td class="mono">304/0</td><td>Implante P+ derivado</td></tr>
+            <tr><td>CS_IMD</td><td class="mono">308/0</td><td>Dieléctrico intermetálico (anotación/derivado)</td></tr>
+            <tr><td>PBULK</td><td class="mono">309/0</td><td>Marcador de sustrato/bulk</td></tr>
+            <tr><td>CS_METAL1</td><td class="mono">311/0</td><td>Metal1 derivado</td></tr>
+            <tr><td>CS_METAL2</td><td class="mono">312/0</td><td>Metal2 derivado</td></tr>
+            <tr><td>CS_OVERGLASS</td><td class="mono">313/0</td><td>Pasivación derivada</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <!-- <details> 
+        <summary>Notas de implementación PDK (KLayout / LVS)</summary>
+        <ul>
+          <li>Definir tabla única de “propósito de capa” (drawing, text, pin, obstruction, marker).</li>
+          <li>Evitar compartir <span class="mono">layer/datatype</span> entre funciones eléctricas distintas.</li>
+          <li>Crear pruebas unitarias de extracción con estructuras patrón: MOS, resistor, capacitor, cadena de vías.</li>
+          <li>Versionar reglas y mapeo en repositorio con changelog.</li>
+        </ul>
+      </details>
+    </section>-->
+
+    <div class="footer">
+      <b>Control de versión:</b> CM05_HTML_v1 · Documento base generado para edición colaborativa.<br/>
+    </div>
+  </div>
 </body>
 </html>
-

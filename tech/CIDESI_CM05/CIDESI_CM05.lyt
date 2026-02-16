@@ -2,11 +2,11 @@
 <technology>
  <name>CIDESI_CM05</name>
  <description>Proceso escalable CMOS de CIDESI (basado en reglas lambda)</description>
- <group>CIDESI</group>
+ <group>LNunT</group>
  <dbu>0.001</dbu>
  <default-grids>0.1,0.5,1,2,2.5,5,7.5,10,100</default-grids>
  <base-path/>
- <original-base-path>C:\Users\Equipo1\KLayout\salt\CIDESI_CM05</original-base-path>
+ <original-base-path>C:\Users\Equipo1\KLayout\salt\CIDESI_CM05\tech\CIDESI_CM05</original-base-path>
  <layer-properties_file>CIDESI_CM05.lyp</layer-properties_file>
  <add-other-layers>true</add-other-layers>
  <reader-options>
@@ -120,6 +120,11 @@
    <lib-paths>
    </lib-paths>
   </mag>
+  <maly>
+   <dbu>0.001</dbu>
+   <layer-map>layer_map()</layer-map>
+   <create-other-layers>true</create-other-layers>
+  </maly>
  </reader-options>
  <writer-options>
   <format>GDS2</format>
@@ -128,6 +133,7 @@
    <write-cell-properties>false</write-cell-properties>
    <write-file-properties>false</write-file-properties>
    <no-zero-length-paths>false</no-zero-length-paths>
+   <default-text-size>-1</default-text-size>
    <multi-xy-records>false</multi-xy-records>
    <resolve-skew-arrays>false</resolve-skew-arrays>
    <max-vertex-count>8000</max-vertex-count>
