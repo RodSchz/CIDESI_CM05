@@ -1,0 +1,1018 @@
+<?xml version="1.0" encoding="utf-8"?>
+<report-database>
+ <description>CIDESI_CMOS DRC runset</description>
+ <original-file>C:/Users/Equipo1/KLayout/salt/CIDESI_CM05/tech/CIDESI_CM05/libraries/CM05_celdas.gds</original-file>
+ <generator>drc: script='C:/Users/Equipo1/KLayout/salt/CIDESI_CM05/tech/CIDESI_CM05/drc\\drc.lydrc'</generator>
+ <top-cell>Inverter</top-cell>
+ <tags>
+ </tags>
+ <categories>
+  <category>
+   <name>DNW_offgrid</name>
+   <description>Offgrid vertex on DNW</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>DNW_angle</name>
+   <description>Non 45 degree angle DNW</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>DNW_PW</name>
+   <description>DNW cannot cross PWell</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>31.1 DNW_width</name>
+   <description>31.1 : Min. DNW width : 75.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>31.2 DNW_space</name>
+   <description>31.2 : Min. DNW spacing : 125.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>31.3 NW_enc_DNW</name>
+   <description>31.3 : Min. NWell enclosing DNW : 37.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>31.4 DNW_enc_NW</name>
+   <description>31.4 : Min. DNW enclosing NWell : 50.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>31.5 DNW_sep_NW</name>
+   <description>31.5 : Min. DNW separation NWell : 87.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>31.6 DNW_enc_NP</name>
+   <description>31.6 : Min. PW in DNW enclosing N+ : 12.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>31.7 DNW_sep_NP</name>
+   <description>31.7 : Min. DNW separation N+ : 75.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>NW_offgrid</name>
+   <description>Offgrid vertex on NWell</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>NW_angle</name>
+   <description>Non 45 degree angle NWell</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>NW_PW</name>
+   <description>NW over PW not allowed</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>1.1 NW_width</name>
+   <description>1.1 : Min. NWell width : 30.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>1.2 NW_space</name>
+   <description>1.2 : Min. NWell spacing : 45.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>1.3 NW_TA_space</name>
+   <description>1.3 : Min. NWell-TA spacing : 15.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>1.1 PW_width</name>
+   <description>1.1 : Min. PWell width : 30.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>1.2 PW_space</name>
+   <description>1.2 : Min. PWell spacing : 45.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>1.3 PW_TA_space</name>
+   <description>1.3 : Min. PWell-TA spacing : 15.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>AA_offgrid</name>
+   <description>Offgrid vertex on AA</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>AA_angle</name>
+   <description>Non 45 degree angle AA</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>2.1 AA_width</name>
+   <description>2.1 : Min. active width : 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>2.2 AA_space</name>
+   <description>2.2 : Min. active spacing : 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>2.3 NW_enc_PP</name>
+   <description>2.3 : Min. NWell enclosing Source/Drain : 15.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>2.3 PW_enc_NP</name>
+   <description>2.3 : Min. PWell enclosing Source/Drain : 15.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>2.4 NW_enc_NP</name>
+   <description>2.4 : Min. NWell enclosing Nstrap : 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>2.4 PW_enc_PP</name>
+   <description>2.4 : Min. PWell enclosing Pstrap : 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>2.5 NP_space_PP</name>
+   <description>2.5 : Min. N+ space P+ : 10.0um (if not abutted)</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>TA_offgrid</name>
+   <description>Offgrid vertex on TA</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>TA_angle</name>
+   <description>Non 45 degree angle TA</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>24.1 TA_width</name>
+   <description>24.1 : Min. TA width : 10.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>24.2 TA_space</name>
+   <description>24.2 : Min. TA spacing : 10.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>24.3 TA_enc_AA</name>
+   <description>24.3 : Min. TA enclosing Active : 10.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>24.4 TA_space_AA</name>
+   <description>24.4 : Min. TA spacing Active : 10.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>24.5 TA_gate_width</name>
+   <description>24.5 : Min. TA Gate width : 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>24.6 AA_in_TA</name>
+   <description>24.6 : Active edge cannot cross TA</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>POLY_offgrid</name>
+   <description>Offgrid vertex on Poly</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>POLY_angle</name>
+   <description>Non 45 degree angle Poly</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>3.1 POLY_width</name>
+   <description>3.1 : Min. Poly width : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>3.2 Poly_space</name>
+   <description>3.2 : Min. Poly spacing : 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>3.2a Gate_space</name>
+   <description>3.2a : Min. Gate spacing : 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>3.3 PL_enc_GATE</name>
+   <description>3.3 : Min. Poly extention Gate : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>3.4 AA_enc_GATE</name>
+   <description>3.4 : Min. Source/Drain length : 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>3.5 PL_space_AA</name>
+   <description>3.5 : Min. Poly on Field spacing Active : 2.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>POLY2_offgrid</name>
+   <description>Offgrid vertex on Poly2</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>POLY2_angle</name>
+   <description>Non 45 degree angle Poly2</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>12.1 POLY2_width</name>
+   <description>12.1 : Min. Poly2 width : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>12.2 POLY2_space</name>
+   <description>12.2 : Min. Poly2 space : 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>12.4 POLY2_space_AA</name>
+   <description>12.4 :  Min. Poly2 on Field spacing Active : 2.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>12.5 POLY2_space_PL</name>
+   <description>12.5 :  Min. Poly2 spacing Poly : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>12.5 POLY2_overlap_PL</name>
+   <description>12.5 :  Min. Poly2 overlap of Poly : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>12.6 POLY2_space_CT</name>
+   <description>12.6 :  Min. Poly2 spacing Poly or Active contact: 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>11.1 POLY2CAP_width</name>
+   <description>11.1 : Min. Poly2 Capacitor width : 17.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>11.2 POLY2CAP_space</name>
+   <description>11.2 : Min. Poly2 Capacitor space : 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>12.3 PL_overlap_POLY2CAP</name>
+   <description>11.3 :  Min. Poly overlap of Poly2 Capacitor : 12.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>11.4 POLY2CAP_space_AA/NW</name>
+   <description>11.4 :  Min. Poly2 Capacitor spacing Active or Well: 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>11.5 POLY2CAP_space_PLCT</name>
+   <description>11.5 :  Min. Poly2 Capacitor spacing Poly contact: 15.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>11.6 POLY2CAP_space_METAL</name>
+   <description>11.6 :  Min. Poly2 Capacitor spacing any Metal: 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>CW_offgrid</name>
+   <description>Offgrid vertex on CapacitorWell</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>CW_angle</name>
+   <description>Non 45 degree angle CapacitorWell</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>17.1 CW_width</name>
+   <description>17.1 : Min. CapacitorWell width : 30.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>17.2 CW_space</name>
+   <description>17.2 : Min. CapacitorWell space : 45.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>17.3 CW_space_AA</name>
+   <description>17.3 :  Min. CapacitorWell spacing Active : 15.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>17.4 CW_overlap_AA</name>
+   <description>17.4 :  Min. CapacitorWell overlap of Active : 15.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>18.1 LC_width</name>
+   <description>18.1 : Min. Linear Capacitor width : 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>18.2 LC_space</name>
+   <description>18.2 : Min. Linear Capacitor space : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>18.3 LC_space_AACT</name>
+   <description>18.3 :  Min.  Linear Capacitor spacing Active contact : 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>18.4 LC_space_PLCT</name>
+   <description>18.4 :  Min.  Linear Capacitor spacing Poly contact : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>NSel_offgrid</name>
+   <description>Offgrid vertex on Nselect</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>PSel_offgrid</name>
+   <description>Offgrid vertex on Pselect</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>N+_angle</name>
+   <description>Non 45 degree angle Nselect</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>P+_angle</name>
+   <description>Non 45 degree angle Pselect</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>4.1 N+_enc_GATE</name>
+   <description>4.1 : Min. N+ extention Gate on Source/Drain : 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>4.1 P+_enc_GATE</name>
+   <description>4.1 : Min. P+ extention Gate on Source/Drain : 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>4.2 N+_enc_AA</name>
+   <description>4.2 : Min. N+ enclosing Active : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>4.2 P+_enc_AA</name>
+   <description>4.2 : Min. P+ enclosing Active : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>4. N+_enc_CT</name>
+   <description>4.3 : Min. N+ enclosing Contact : 2.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>4.3 P+_enc_CT</name>
+   <description>4.3 : Min. P+ enclosing Contact : 2.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>4.4 N+_width</name>
+   <description>4.4 : Min. N+ width : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>4.4 P+_width</name>
+   <description>4.4 : Min. N+ width : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>4.4 N+_space</name>
+   <description>4.4 : Min. N+ spacing : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>4.4 P+_space</name>
+   <description>4.4 : Min. N+ spacing : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>4.4 N+_and_P+</name>
+   <description>4.4 : N+ over P+ not allowed</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>HR_offgrid</name>
+   <description>Offgrid vertex on HighRes</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>HR_angle</name>
+   <description>Non 45 degree angle HighRes</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>27.1 HR_width</name>
+   <description>27.1 : Min. HiRes width : 10.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>27.2 HR_space</name>
+   <description>27.2 : Min. HiRes spacing : 10.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>27.3 HR_space_CT</name>
+   <description>27.3 : Min. HiRes space to Contact : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>27.4 HR_space_AA</name>
+   <description>27.4 : Min. HiRes space to Active : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>27.5 HR_space_PO2</name>
+   <description>27.5 : Min. HiRes space to Poly2 : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>27.6 HR_and_active</name>
+   <description>27.6 : HiRes Po2 over Active not allowed</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>27.6 HR_and_Well</name>
+   <description>27.6 : HiRes Po2 over Well not allowed</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>27.7 HRPO2_width</name>
+   <description>27.7 : Min. HiRes Poly2 width : 12.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>27.8 HRPO2_space</name>
+   <description>27.8 : Min. HiRes Poly2 space : 17.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>27.9 HR_enc_PO2</name>
+   <description>27.9 : Min. HiRes enclosing Poly2 : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>SB_offgrid</name>
+   <description>Offgrid vertex on Sil. Block</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>SB_angle</name>
+   <description>Non 45 degree angle Sil. Block</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>20.1 SB_width</name>
+   <description>20.1 : Min. Sil. Block width : 10.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>20.2 SB_space</name>
+   <description>20.2 : Min. Sil. Block spacing : 10.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>20.3 SB_space_CT</name>
+   <description>20.3 : Min. Sil. Block space to Contact : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>20.3 SB_and_CT</name>
+   <description>20.3 : Sil. Block over Contact not allowed</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>20.4 SB_space_AA</name>
+   <description>20.4 : Min. Sil. Block space to Active : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>20.5 SB_space_PL</name>
+   <description>20.5 : Min. Sil. Block space to Poly : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>20.6 SBres_overAA</name>
+   <description>20.6 : SB resistor over Active not allowed</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>20.6 SBres_over_WELL</name>
+   <description>20.6 : SB resistor over Well not allowed</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>20.6 SBres_width</name>
+   <description>20.7 : Min. SB resistor width : 12.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>20.7 SBres_space</name>
+   <description>20.7 : Min. SB resistor space : 12.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>20.8 SB_enc_AA</name>
+   <description>20.8 : Min. Sil. Block enclosing Active : 17.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>20.9 AA_enc_SB</name>
+   <description>20.9 : Min. Active enclosing Sil. Block : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>20.8 SB_enc_PL</name>
+   <description>20.8 : Min. Sil. Block enclosing Poly : 17.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>20.9 PL_enc_SB</name>
+   <description>20.9 : Min. Poly enclosing Sil. Block : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>20.11 SB_space_GATE</name>
+   <description>20.11 : Min. Sil. Block space to Gate : 12.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>CT_offgrid</name>
+   <description>Offgrid vertex on Contact</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>CT_angle</name>
+   <description>Non 90 degree angle Contact</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>CT_and_GATE</name>
+   <description>Contact on Gate not allowed</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>CT_not_M1</name>
+   <description>Contact without Metal1 not recommended</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>5.1 CT_width</name>
+   <description>5.1 : Exact Contact width : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>5.1 CT_area</name>
+   <description>5.1 : Exact Contact Area : 25.0um2</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>5.3 CT_space</name>
+   <description>5.3 : Contact spacing : 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>5.2 PL_enc_CT</name>
+   <description>5.2 : Min. Poly enclosing Contact : 2.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>6.2 AA_enc_CT</name>
+   <description>6.2 : Min. Active enclosing Contact : 2.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>13.3 PO2_enc_CT</name>
+   <description>13.3 : Min. Poly2 enclosing Contact : 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>5.4 CTAA_space_GATE</name>
+   <description>5.4 : Min. ActiveContact space to Gate : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>5.5.b CTPL_space_Poly</name>
+   <description>5.5.b : Min. PolyContact space to Poly : 12.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>5.6.b CTPL_space_AA</name>
+   <description>5.6.b : Min. PolyContact space to AA : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>6.5.b CTAA_space_AA</name>
+   <description>6.5.b : Min. ActiveContact space to AA : 12.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>6.6.b CTAA_space_PL</name>
+   <description>6.6.b : Min. ActiveContact space to Poly : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>6.7.b CTAA_space_CTPL</name>
+   <description>6.7.b : Min. ActiveContact space to PolyContact : 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>13.5 CTPO2_space_AA</name>
+   <description>13.5 : Min. Poly2Contact space to AA : 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>13.5 CTPO2_space_PL</name>
+   <description>13.5 : Min. Poly2Contact space to Poly : 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>7.3 M1_enc_CT</name>
+   <description>7.3 : Min. Metal1 enclosing Contact : 2.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>M1_offgrid</name>
+   <description>Offgrid vertex on ME1</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>M1_angle</name>
+   <description>Non 45 degree angle ME1</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>M1_holes</name>
+   <description>Min. Metal1 holes area : 56.25um2</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>7.1 M1_width</name>
+   <description>7.1 : Min. Metal1 width : 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>7.2 M1_space</name>
+   <description>7.2 : Min. Metal1 spacing : 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>7.4 M1_10_space</name>
+   <description>7.4 : Space if at least one metal1 line width is &gt; 25.0um : 15.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>V1_offgrid</name>
+   <description>Offgrid vertex on Via1</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>V1_not_M1</name>
+   <description>Via1 without Metal1 not allowed</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>V1_not_M2</name>
+   <description>Via1 without Metal2 not allowed</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>V1_angle</name>
+   <description>Non 90 degree angle Via1</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>8.1 V1_width</name>
+   <description>8.1 : Exact Via1 width : 5.0um2</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>8.2 V1_space</name>
+   <description>8.2 : Via1 spacing : 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>8.3 M1_enc_V1</name>
+   <description>8.3 : Min. Metal1 enclosing Via1 : 2.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>9.3 M2_enc_V1</name>
+   <description>9.3 : Min. Metal2 enclosing Via1 : 2.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>8.4 V1_space_CT</name>
+   <description>8.4 : Via1 space CT : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>8.5 V1_space_PL/AAedges</name>
+   <description>8.5 : Via1 space to Poly orActive edges : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>M2_offgrid</name>
+   <description>Offgrid vertex on ME2</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>M2_angle</name>
+   <description>Non 45 degree angle ME2</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>9.1 M2_width</name>
+   <description>9.1 : Min. Metal2 width : 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>9.2 M2_space</name>
+   <description>9.2 : Min. Metal2 spacing : 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>9.4 M2_10_space</name>
+   <description>9.4 : Space if at least one metal2 line width is &gt; 25.0um : 15.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>V2_offgrid</name>
+   <description>Offgrid vertex on Via2</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>V2_not_M3</name>
+   <description>Via2 without Metal3 not allowed</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>V2_not_M2</name>
+   <description>Via2 without Metal2 not allowed</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>V2_angle</name>
+   <description>Non 90 degree angle Via2</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>14.1 V2_width</name>
+   <description>14.1 : Exact Via2 width : 5.0um2</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>14.2 V2_space</name>
+   <description>14.2 : Via2 spacing : 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>14.3 M2_enc_V2</name>
+   <description>14.3 : Min. Metal2 enclosing Via2 : 2.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>15.3 M3_enc_V2</name>
+   <description>15.3 : Min. Metal3 enclosing Via2 : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>14.4 V2_space_V1</name>
+   <description>14.4 : Via2 space Via1 : 5.0um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>M3_offgrid</name>
+   <description>Offgrid vertex on ME3</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>M3_angle</name>
+   <description>Non 45 degree angle ME3</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>15.1 M3_width</name>
+   <description>15.1 : Min. Metal3 width : 12.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>15.2 M3_space</name>
+   <description>15.2 : Min. Metal3 spacing : 7.5um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>15.4 M3_10_space</name>
+   <description>15.4 : Space if at least one metal3 line width is &gt; 25.0um : 15.0um</description>
+   <categories>
+   </categories>
+  </category>
+ </categories>
+ <cells>
+  <cell>
+   <name>Inverter</name>
+   <variant/>
+   <layout-name/>
+   <references>
+   </references>
+  </cell>
+ </cells>
+ <items>
+ </items>
+</report-database>
