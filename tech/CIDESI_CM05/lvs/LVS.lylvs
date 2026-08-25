@@ -226,8 +226,6 @@ mip_body = (cap_body &amp; m1_clean &amp; poly_clean) &amp; (chip - active)
 extract_devices(capacitor("C_MIP", 5.0e-16), {
   "P1" =&gt; (mip_body &amp; m1_clean),
   "P2" =&gt; (mip_body &amp; poly_clean),
-  "tA" =&gt; cap_tA,
-  "tB" =&gt; cap_tB
 })
 
 # TODO corregir clases vacías de C_MIM para compatibilidad con LTSpice

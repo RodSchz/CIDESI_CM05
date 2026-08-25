@@ -160,6 +160,11 @@ extract_devices(resistor("TC1=1.5e-3",   rho_poly),  { "R" =&gt; body_poly,  "C"
 extract_devices(resistor("R_NDIFF",  rho_ndiff), { "R" =&gt; body_ndiff, "C" =&gt; res_term })
 extract_devices(resistor("R_PDIFF",  rho_pdiff), { "R" =&gt; body_pdiff, "C" =&gt; res_term })
 
+# Parasitic metal resistor
+rpex_term = via1
+rpex_body = m1 - via1
+extract_devices(resistor("R_MPEX", rho_m1),{ "R" =&gt; rpex_body, "C" =&gt; rpex_term })
+
 # ===========================================================
 #        EXTRACCIÓN DE CAPACITORES (SOLO MIP y MiM)
 # ===========================================================
@@ -182,12 +187,20 @@ extract_devices(capacitor("C_MIP", 5.0e-16), {
 # TODO corregir clases vacias de C_MIM para compatibilidad con LTSpice
 # MiM: (M2 limpio ∧ M1 limpio)
 mim_body = cap_body &amp; m2_clean &amp; m1_clean
-extract_devices(capacitor("C_MIM", 1.2e-16), {
+extract_devices(capacitor(" ", 1.2e-16), {
   "P1" =&gt; (mim_body &amp; m2_clean),
   "P2" =&gt; (mim_body &amp; m1_clean),
   "tA" =&gt; cap_tA,
   "tB" =&gt; cap_tB
 })
+
+# Parasitic MiM
+mim_body_PEX = (m2_clean &amp; m1_clean)-cap_body
+extract_devices(capacitor(" ", 1.2e-16), {
+  "P1" =&gt; (m2_clean),
+  "P2" =&gt; (m1_clean),
+})
+
 
 # ===========================================================
 #              PUERTOS Y SPICE
@@ -222,7 +235,7 @@ end
 
 # Sanitiza para nombre de archivo (quita caracteres raros)
 base_name = top_cell_name_fallback.gsub(/[^A-Za-z0-9._-]+/, "_")
-out_path  = $out_spice || "#{base_name}.cir"
+out_path  = $out_spice || "#{base_name}_PEX.cir"
 
 # ====================================================
 netlist.make_top_level_pins
@@ -236,6 +249,5 @@ with_comments = false
 target_netlist(out_path,
                write_spice(use_net_names, with_comments),
                "Extracted by KLayout (CIDESI_CM05, LNunT, CIDESI)")
-
 </text>
 </klayout-macro>

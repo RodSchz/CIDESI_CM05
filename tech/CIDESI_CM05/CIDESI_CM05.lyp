@@ -78,7 +78,7 @@
   <fill-color>#00ff00</fill-color>
   <frame-brightness>0</frame-brightness>
   <fill-brightness>0</fill-brightness>
-  <dither-pattern>C58</dither-pattern>
+  <dither-pattern>I3</dither-pattern>
   <line-style/>
   <valid>true</valid>
   <visible>true</visible>
@@ -132,7 +132,7 @@
   <fill-color>#ff0000</fill-color>
   <frame-brightness>0</frame-brightness>
   <fill-brightness>0</fill-brightness>
-  <dither-pattern>I11</dither-pattern>
+  <dither-pattern>I2</dither-pattern>
   <line-style/>
   <valid>true</valid>
   <visible>true</visible>
@@ -272,8 +272,8 @@
  </properties>
  <properties>
   <expanded>false</expanded>
-  <frame-color>#00cc66</frame-color>
-  <fill-color>#00cc66</fill-color>
+  <frame-color>#ffae00</frame-color>
+  <fill-color>#ffae00</fill-color>
   <frame-brightness>0</frame-brightness>
   <fill-brightness>0</fill-brightness>
   <dither-pattern>I1</dither-pattern>
@@ -290,8 +290,8 @@
  </properties>
  <properties>
   <expanded>false</expanded>
-  <frame-color>#00cc66</frame-color>
-  <fill-color>#00cc66</fill-color>
+  <frame-color>#01ff6b</frame-color>
+  <fill-color>#01ff6b</fill-color>
   <frame-brightness>0</frame-brightness>
   <fill-brightness>0</fill-brightness>
   <dither-pattern>I1</dither-pattern>
@@ -312,7 +312,7 @@
   <fill-color>#0000ff</fill-color>
   <frame-brightness>0</frame-brightness>
   <fill-brightness>0</fill-brightness>
-  <dither-pattern>I8</dither-pattern>
+  <dither-pattern>I2</dither-pattern>
   <line-style/>
   <valid>true</valid>
   <visible>true</visible>

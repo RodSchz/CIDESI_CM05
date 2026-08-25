@@ -1,0 +1,1531 @@
+<?xml version="1.0" encoding="utf-8"?>
+<klayout-macro>
+ <description>PCells de dispositivos para CIDESI_CM05</description>
+ <version>1.0</version>
+ <category/>
+ <prolog/>
+ <epilog/>
+ <doc/>
+ <autorun>true</autorun>
+ <autorun-early>false</autorun-early>
+ <priority>0</priority>
+ <shortcut/>
+ <show-in-menu>false</show-in-menu>
+ <group-name>LNunT</group-name>
+ <menu-path>CM05&gt;end("CM05").end</menu-path>
+ <interpreter>ruby</interpreter>
+ <dsl-interpreter-name/>
+ <text># ============================================================================
+#  CIDESI_CM05 - Biblioteca de celdas parametricas (PCells)
+#  Autor: Rodolfo Sanchez Fraga - LNunT / CIDESI
+#  Objetivo: PCells DRC-limpias por construccion, compatibles con drc.lydrc
+#            y con la extraccion de EXT.lylvs.
+#
+#  Requiere KLayout &gt;= 0.25 (probado contra 0.30.7).  dbu = 0.001 um.
+#
+#  ---------------------------------------------------------------------------
+#  DECISIONES DE STACK (acordadas 2026-08)
+#  ---------------------------------------------------------------------------
+#  * HiRes (34/0) es una MASCARA MODIFICADORA sobre Poly1 (46/0), no una capa
+#    conductora autosuficiente.  Esto es lo que declara la propia tecnologia en
+#    CIDESI_CM05.lyt:   &lt;symbols&gt;poly='46-34'&lt;/symbols&gt;
+#    es decir, el poly conductor = Poly1 MENOS HiRes.
+#  * Por lo tanto los contactos NUNCA caen sobre HR.  El cuerpo del resistor
+#    termina en una CABEZA de Poly1 ensanchada, con el HR retraido &gt;= 5.0 um
+#    respecto del contacto mas cercano (regla 27.3).
+#  * Contactos: 47/0 (ContactPoly) a poly, 48/0 (ContactActive) a activo.
+#    Es la unica convencion que EXT.lylvs extrae hoy.
+#
+#  ---------------------------------------------------------------------------
+#  &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;  PARAMETROS DE PROCESO - MODIFICAR AQUI  &lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;
+#  ---------------------------------------------------------------------------
+#  Los valores de esta seccion son los unicos que hay que tocar cuando lleguen
+#  caracterizaciones nuevas.  Cada uno indica su origen actual.
+#  Recuerda que los mismos numeros viven tambien en EXT.lylvs (rho_* y las
+#  constantes de capacitor); manten ambos archivos sincronizados.
+# ============================================================================
+
+module CIDESI_CM05_PCells
+
+  include RBA
+
+  # --- Geometria base del proceso -------------------------------------------
+  LAMBDA = 2.5                  # um   (drc.lydrc: LAMBDA)
+  GRID   = 0.5 * LAMBDA         # 1.25 um - rejilla de manufactura, drc: ongrid(0.5*LAMBDA)
+  GRID2  = 2.0 * GRID           # 2.50 um - para cotas que se dividen entre 2
+                                #           (asi el borde queda en rejilla)
+
+  # --- Resistencias de hoja (Ohm/cuadro) ------------------------------------
+  # ORIGEN: EXT.lylvs, seccion "Valores por cuadrado".
+  # &gt;&gt;&gt; MODIFICAR AQUI tras caracterizacion &lt;&lt;&lt;
+  RSH_HRES  = 2500.0            # Poly1 bajo mascara HiRes
+  RSH_POLY  = 25.0              # Poly1 sin HiRes (cabezas). ESTIMADO, no caracterizado.
+  RSH_M1    = 0.05
+  RSH_NDIFF = 25.0
+  RSH_PDIFF = 30.0
+  TC1_HRES  = 1.5e-3            # 1/degC - coef. de temperatura lineal del HiRes
+
+  # --- Capacitancias --------------------------------------------------------
+  # ORIGEN: EXT.lylvs (5.0e-16 y 1.2e-16 F/um2) y manual del curso pag. 38.
+  # &gt;&gt;&gt; MODIFICAR AQUI tras caracterizacion &lt;&lt;&lt;
+  C_MIP_AREA = 0.50             # fF/um2  - MIP (M1 sobre Poly)   [EXT: 5.0e-16 F/um2]
+  C_MIM_AREA = 0.12             # fF/um2  - MiM (M2 sobre M1)     [EXT: 1.2e-16 F/um2]
+  C_FRINGE   = 0.10             # fF/um   - capacitancia de borde. Solo informativa:
+                                #           EXT.lylvs NO la modela hoy.
+
+  # --- Modelo de resistor ---------------------------------------------------
+  K_CORNER = 0.56               # cuadros efectivos que aporta un codo de 90 grados
+                                # (un codo ocupa 1 cuadro geometrico pero conduce
+                                #  ~0.56 por la distribucion no uniforme de corriente)
+
+  # ==========================================================================
+  #  REGLAS DE DISENO derivadas de drc.lydrc  (LAMBDA=2.5, SUBM=true, 2 metales)
+  #  No modificar a mano: son funcion de LAMBDA.  El comentario indica la regla.
+  # ==========================================================================
+
+  # Pozos
+  NW_W         = 12 * LAMBDA    # 1.1   30.0  ancho min. Nwell/Pwell
+  NW_S         = 18 * LAMBDA    # 1.2   45.0  espacio min. Nwell/Pwell
+  NW_ENC_SD    =  6 * LAMBDA    # 2.3   15.0  pozo encierra fuente/drenaje
+  NW_ENC_TAP   =  3 * LAMBDA    # 2.4    7.5  pozo encierra tap de bulk
+
+  # Activo
+  AA_W         =  3 * LAMBDA    # 2.1    7.5
+  AA_S         =  3 * LAMBDA    # 2.2    7.5
+  NP_S_PP      =  4 * LAMBDA    # 2.5   10.0  N+ a P+ (si no estan abutidos)
+  AA_ENC_GATE  =  3 * LAMBDA    # 3.4    7.5  largo min. de fuente/drenaje
+  AA_ENC_CT    =  1 * LAMBDA    # 6.2b   2.5
+
+  # Poly
+  PL_W         =  2 * LAMBDA    # 3.1    5.0
+  PL_S         =  3 * LAMBDA    # 3.2    7.5
+  PL_ENC_GATE  =  2 * LAMBDA    # 3.3    5.0  extension de poly sobre la compuerta
+  PL_S_AA      =  1 * LAMBDA    # 3.5    2.5  poly en campo a activo
+  PL_ENC_CT    =  1 * LAMBDA    # 5.2b   2.5
+
+  # Select N+/P+
+  SEL_ENC_GATE =  3 * LAMBDA    # 4.1    7.5
+  SEL_ENC_AA   =  2 * LAMBDA    # 4.2    5.0
+  SEL_ENC_CT   =  1 * LAMBDA    # 4.3    2.5
+  SEL_W        =  2 * LAMBDA    # 4.4    5.0
+
+  # Contacto
+  CT_SIZE      =  2 * LAMBDA    # 5.1    5.0  ancho EXACTO (area exacta 25 um2)
+  CT_S         =  3 * LAMBDA    # 5.3    7.5
+  CTAA_S_GATE  =  2 * LAMBDA    # 5.4    5.0  contacto de activo a compuerta
+  CTPL_S_AA    =  2 * LAMBDA    # 5.6b   5.0  contacto de poly a activo
+  CTAA_S_PL    =  2 * LAMBDA    # 6.6b   5.0  contacto de activo a poly
+
+  # Metal 1
+  M1_W         =  3 * LAMBDA    # 7.1    7.5
+  M1_S         =  3 * LAMBDA    # 7.2    7.5
+  M1_ENC_CT    =  1 * LAMBDA    # 7.3    2.5
+
+  # Via 1 / Metal 2
+  V1_SIZE      =  2 * LAMBDA    # 8.1    5.0  ancho EXACTO
+  V1_S         =  3 * LAMBDA    # 8.2    7.5
+  M1_ENC_V1    =  1 * LAMBDA    # 8.3    2.5
+  V1_S_CT      =  2 * LAMBDA    # 8.4    5.0
+  M2_W         =  3 * LAMBDA    # 9.1    7.5
+  M2_S         =  3 * LAMBDA    # 9.2    7.5
+  M2_ENC_V1    =  1 * LAMBDA    # 9.3    2.5
+
+  # HiRes
+  HR_W         =  4 * LAMBDA    # 27.1  10.0  ancho min. de HiRes
+  HR_S         =  4 * LAMBDA    # 27.2  10.0  espacio min. HiRes a HiRes
+  HR_S_CT      =  2 * LAMBDA    # 27.3   5.0  HiRes a contacto  &lt;-- define el retiro
+  HR_S_AA      =  2 * LAMBDA    # 27.4   5.0  HiRes a activo
+
+  # ==========================================================================
+  #  CAPAS GDS  (numeros tomados de CIDESI_CM05.lyp)
+  # ==========================================================================
+  L_NW    = LayerInfo::new(42, 0)    # Nwell.drawing
+  L_PW    = LayerInfo::new(41, 0)    # Pwell.drawing
+  L_AA    = LayerInfo::new(43, 0)    # Active.drawing
+  L_PL    = LayerInfo::new(46, 0)    # Poly.drawing
+  L_PLT   = LayerInfo::new(46, 1)    # Poly.text
+  L_NSEL  = LayerInfo::new(45, 0)    # Nselect.drawing
+  L_PSEL  = LayerInfo::new(44, 0)    # Pselect.drawing
+  L_HR    = LayerInfo::new(34, 0)    # HiRes.drawing
+  L_CTP   = LayerInfo::new(47, 0)    # ContactPoly.drawing
+  L_CTA   = LayerInfo::new(48, 0)    # ContactActive.drawing
+  L_M1    = LayerInfo::new(49, 0)    # Metal1.drawing
+  L_M1T   = LayerInfo::new(49, 1)    # Metal1.text   &lt;- EXT: labels(49,1)
+  L_V1    = LayerInfo::new(50, 0)    # Via.drawing
+  L_M2    = LayerInfo::new(51, 0)    # Metal2.drawing
+  L_M2T   = LayerInfo::new(51, 1)    # Metal2.text   &lt;- EXT: labels(51,1)
+
+  # Marcadores de dispositivo (los lee EXT.lylvs)
+  L_RBODY = LayerInfo::new(70, 0)    # ResBody.drawing
+  L_RTERM = LayerInfo::new(70, 1)    # ResTerm.drawing
+  L_RTXT  = LayerInfo::new(70, 2)    # Res.text
+  L_CBODY = LayerInfo::new(71, 0)    # CapBody.drawing
+  L_CTMA  = LayerInfo::new(71, 1)    # CapTermA.drawing
+  L_CTMB  = LayerInfo::new(71, 2)    # CapTermB.drawing
+  L_CTXT  = LayerInfo::new(71, 3)    # Cap.text
+
+  L_DIE   = LayerInfo::new(100, 0)   # Die.outline  &lt;- EXT: chip = input(100,0)
+
+  # ==========================================================================
+  #  HELPERS
+  # ==========================================================================
+  module Helpers
+
+    # --- Rejilla ------------------------------------------------------------
+    # Toda cota que se dibuje debe caer en multiplos de GRID (1.25 um), porque
+    # drc.lydrc hace ongrid(0.5*LAMBDA) sobre practicamente todas las capas.
+    # Las cotas que se DIVIDEN ENTRE 2 (anchos centrados en el eje) deben ser
+    # multiplos de GRID2 (2.5 um) para que el borde resultante quede en rejilla.
+    def gsnap(v, g = GRID)
+      (v / g).round * g
+    end
+
+    def gsnap_up(v, g = GRID)
+      (v / g).ceil * g
+    end
+
+    def gsnap_dn(v, g = GRID)
+      (v / g).floor * g
+    end
+
+    def g2(v)
+      gsnap(v, GRID2)
+    end
+
+    def g2_up(v)
+      gsnap_up(v, GRID2)
+    end
+
+    # --- Conversion a DBU ---------------------------------------------------
+    def ibox(db)
+      d = layout.dbu
+      RBA::Box.new((db.left / d).round,  (db.bottom / d).round,
+                   (db.right / d).round, (db.top / d).round)
+    end
+
+    def ipath(dpts, dwidth)
+      d = layout.dbu
+      pts = dpts.map { |q| RBA::Point.new((q[0] / d).round, (q[1] / d).round) }
+      RBA::Path.new(pts, (dwidth / d).round)
+    end
+
+    # --- Insercion ----------------------------------------------------------
+    def put(li, db)
+      cell.shapes(li).insert(ibox(db))
+      db
+    end
+
+    def put_all(li, boxes)
+      boxes.each { |b| cell.shapes(li).insert(ibox(b)) }
+      boxes
+    end
+
+    def put_path(li, dpts, dwidth)
+      cell.shapes(li).insert(ipath(dpts, dwidth))
+    end
+
+    # Anillo descompuesto en 4 rectangulos QUE NO SE TRASLAPAN.
+    # Importante: al no traslaparse, se pueden usar directamente como regiones
+    # para generar contactos sin duplicarlos en las esquinas (lo que violaria
+    # la regla 5.1 de area exacta de contacto).
+    def ring_segments(outer, ring_w)
+      o = outer
+      w = ring_w
+      [
+        RBA::DBox.new(o.left,      o.bottom,     o.right,    o.bottom + w),  # abajo
+        RBA::DBox.new(o.left,      o.top - w,    o.right,    o.top),         # arriba
+        RBA::DBox.new(o.left,      o.bottom + w, o.left + w, o.top - w),     # izquierda
+        RBA::DBox.new(o.right - w, o.bottom + w, o.right,    o.top - w)      # derecha
+      ]
+    end
+
+    def put_ring(li, outer, ring_w)
+      bs = ring_segments(outer, ring_w)
+      put_all(li, bs)
+      bs
+    end
+
+    def put_text(li, s, x, y, h = 5.0)
+      t = RBA::DText.new
+      t.string = s.to_s
+      t.size   = h
+      t.trans  = RBA::DTrans.new(x, y)
+      cell.shapes(li).insert(RBA::Text.new(t))
+    end
+
+    # --- Cajas --------------------------------------------------------------
+    def dbox(l, b, r, t)
+      RBA::DBox.new(l, b, r, t)
+    end
+
+    def shrink(db, dx, dy = nil)
+      dy = dx if dy.nil?
+      RBA::DBox.new(db.left + dx, db.bottom + dy, db.right - dx, db.top - dy)
+    end
+
+    def grow(db, dx, dy = nil)
+      dy = dx if dy.nil?
+      RBA::DBox.new(db.left - dx, db.bottom - dy, db.right + dx, db.top + dy)
+    end
+
+    def bbox_of(boxes)
+      return nil if boxes.nil? || boxes.empty?
+      l = boxes.map { |b| b.left }.min
+      r = boxes.map { |b| b.right }.max
+      bo = boxes.map { |b| b.bottom }.min
+      t = boxes.map { |b| b.top }.max
+      RBA::DBox.new(l, bo, r, t)
+    end
+
+    # Garantiza un ancho/alto minimo creciendo simetricamente desde el centro.
+    def at_least(db, min_w, min_h = nil)
+      min_h = min_w if min_h.nil?
+      dx = [(min_w - db.width) / 2.0, 0.0].max
+      dy = [(min_h - db.height) / 2.0, 0.0].max
+      grow(db, g2_up(2 * dx) / 2.0, g2_up(2 * dy) / 2.0)
+    end
+
+    # --- Arreglo de cortes (contactos / vias) -------------------------------
+    #
+    #   box   : region de la capa que debe encerrar los cortes
+    #   size  : lado exacto del corte (CT_SIZE o V1_SIZE)
+    #   space : separacion minima entre cortes
+    #   enc   : encierro minimo requerido de la capa sobre el corte
+    #
+    # Devuelve un arreglo de DBox centrado en la region util.  Nunca viola el
+    # encierro: si el redondeo a rejilla desplazaria el arreglo fuera de la
+    # region util, se re-ancla al borde interior.
+    def cut_array(box, size, space, enc)
+      inner = shrink(box, enc)
+      eps   = 1e-9
+      return [] if inner.width &lt; size - eps || inner.height &lt; size - eps
+
+      pitch = size + space
+      nx = ((inner.width  + space + eps) / pitch).floor
+      ny = ((inner.height + space + eps) / pitch).floor
+      nx = 1 if nx &lt; 1
+      ny = 1 if ny &lt; 1
+
+      tw = nx * size + (nx - 1) * space
+      th = ny * size + (ny - 1) * space
+
+      x0 = gsnap(inner.center.x - tw / 2.0)
+      y0 = gsnap(inner.center.y - th / 2.0)
+      x0 = gsnap_up(inner.left)   if x0 &lt; inner.left   - eps
+      y0 = gsnap_up(inner.bottom) if y0 &lt; inner.bottom - eps
+
+      out = []
+      ny.times do |j|
+        nx.times do |i|
+          xl = x0 + i * pitch
+          yb = y0 + j * pitch
+          out &lt;&lt; RBA::DBox.new(xl, yb, xl + size, yb + size)
+        end
+      end
+      out
+    end
+
+    # Ancho minimo de una region para alojar n cortes en una direccion.
+    def span_for_cuts(n, size, space, enc)
+      g2_up(n * size + (n - 1) * space + 2 * enc)
+    end
+
+    # --- Contorno de die opcional (capa 100/0) ------------------------------
+    # EXT.lylvs define  psub = (chip + chip2) - nwell  con chip = input(100,0).
+    # Sin ningun poligono en 100/0 el sustrato queda definido solo por
+    # extent.sized(0), lo que basta en la mayoria de los casos pero no deja
+    # margen.  Este flag permite generar el rectangulo desde la propia celda.
+    def put_die_outline(li, content_bbox, margin)
+      return if content_bbox.nil?
+      m = gsnap_up(margin)
+      put(li, grow(content_bbox, m))
+    end
+  end
+end
+# ============================================================================
+#  PCell 1/6 : RESISTOR SERPENTIN DE ALTA RESISTENCIA (Poly1 + HiRes)
+# ============================================================================
+#
+#  Seccion transversal del stack:
+#
+#     cabeza            cuerpo resistivo             cabeza
+#    +--------+                                     +--------+
+#    | M1     |                                     | M1     |     49/0
+#    | [] []  |  &lt;- contactos 47/0                  |  [] [] |
+#    +--------+ ================================== +--------+
+#    | Poly1  |     Poly1 cubierto por HiRes        | Poly1  |     46/0
+#    +--------+ ================================== +--------+
+#             |&lt;--&gt;|                          |&lt;--&gt;|
+#             5 um retiro de HR (regla 27.3)  5 um
+#
+#  * El HR (34/0) se retrae &gt;= HR_S_CT del contacto mas cercano, por lo que
+#    los contactos siempre caen sobre poly de baja resistencia.
+#  * ResBody (70/0) se dibuja con el ANCHO DEL POLY sobre la trayectoria
+#    recortada, de modo que  body_poly = res_body &amp; hres  en EXT.lylvs da
+#    exactamente la region resistiva. NO se traslapa con M1, para no generar
+#    dispositivos R_METAL1 espurios en la extraccion.
+#  * ResTerm (70/1) cubre el pad de M1 y penetra term_ov_um dentro del cuerpo,
+#    para que el extractor de KLayout encuentre terminales que ABUTEN el cuerpo.
+#
+#  Modelo de cuadros:
+#      N = (L_centerline - 2*trim - 2*term_ov)/W  -  n_codos * (1 - k_corner)
+#  Un codo de 90 grados ocupa 1 cuadro geometrico pero conduce ~k_corner.
+# ============================================================================
+
+module CIDESI_CM05_PCells
+
+  class ResistorHiRes &lt; PCellDeclarationHelper
+
+    include RBA
+    include Helpers
+
+    def initialize
+      super
+
+      # --- Geometria del trazo ---
+      param(:w_um,      TypeDouble, "Ancho de trazo W (um)",              :default =&gt; 10.0)
+      param(:run_um,    TypeDouble, "Largo de cada dedo (um)",            :default =&gt; 100.0)
+      param(:pitch_um,  TypeDouble, "Paso vertical centro a centro (um)", :default =&gt; 20.0)
+
+      # --- Control del valor ---
+      param(:use_target, TypeBoolean, "Calcular dedos desde # de cuadros", :default =&gt; true)
+      param(:n_squares,  TypeDouble,  "# de cuadros objetivo",             :default =&gt; 100.0)
+      param(:fingers,    TypeInt,     "# de dedos (si no se usa objetivo)",:default =&gt; 5)
+      param(:fit_run,    TypeBoolean, "Ajustar largo de dedo al objetivo", :default =&gt; true)
+      param(:rsq,        TypeDouble,  "Rsheet HiRes (Ohm/cuadro)",         :default =&gt; RSH_HRES)
+      param(:k_corner,   TypeDouble,  "Cuadros por codo de 90 grados",     :default =&gt; K_CORNER)
+
+      # --- Cabezas y terminales ---
+      param(:head_len_um,     TypeDouble, "Largo de la cabeza de Poly1 (um)", :default =&gt; 22.5)
+      param(:hr_ct_space_um,  TypeDouble, "Retiro de HR al contacto (um)",    :default =&gt; HR_S_CT)
+      param(:term_ov_um,      TypeDouble, "Penetracion de ResTerm al cuerpo (um)", :default =&gt; 2.5)
+      param(:hr_over_um,      TypeDouble, "Sobredimension de HR sobre Poly (um)",  :default =&gt; 0.0)
+
+      # --- Etiquetas y marcadores ---
+      param(:label_a,     TypeString,  "Etiqueta terminal A", :default =&gt; "A")
+      param(:label_b,     TypeString,  "Etiqueta terminal B", :default =&gt; "B")
+      param(:gen_markers, TypeBoolean, "Generar marcadores LVS (70/0,70/1,70/2)", :default =&gt; true)
+    end
+
+    # ------------------------------------------------------------------------
+    #  Cotas derivadas (analiticas: no dependen de layout, se usan igual en
+    #  coerce_parameters_impl, display_text_impl y produce_impl)
+    # ------------------------------------------------------------------------
+
+    # Ancho transversal de la cabeza: debe alojar al menos un contacto.
+    def head_w
+      [g2_up(w_um), g2_up(CT_SIZE + 2 * PL_ENC_CT)].max
+    end
+
+    # Distancia desde el extremo del centerline hasta donde arranca el HR.
+    # Caso peor: el contacto mas cercano toca el borde interior util de la
+    # cabeza, es decir esta a PL_ENC_CT del extremo.
+    def trim_len
+      gsnap_up(hr_ct_space_um - PL_ENC_CT)
+    end
+
+    # Constante del modelo: longitud de centerline que NO es resistiva.
+    def dead_len
+      2.0 * trim_len + 2.0 * term_ov_um
+    end
+
+    def n_fingers
+      return [fingers.to_i, 2].max unless use_target
+      w  = w_um
+      kc = k_corner
+      denom = (run_um + pitch_um) / w - 2.0 * (1.0 - kc)
+      return 2 if denom &lt;= 1e-9
+      numer = n_squares + pitch_um / w + dead_len / w - 2.0 * (1.0 - kc)
+      n = (numer / denom).ceil
+      n &lt; 2 ? 2 : n
+    end
+
+    # Largo de dedo efectivo.
+    #
+    # n_fingers() redondea hacia arriba, asi que con run_um a tope el resistor
+    # SIEMPRE queda por encima del objetivo (hasta run/W cuadros de mas: con
+    # los valores por defecto, hasta 10 cuadros = 10% de error).  Con fit_run
+    # activo se resuelve el largo de dedo que da exactamente n_squares y se
+    # recorta a rejilla, usando run_um como cota superior.
+    #
+    #   N = (nf*run + (nf-1)*p - dead)/W - 2*(nf-1)*(1-kc)
+    #   =&gt; run = [ W*(N + 2*(nf-1)*(1-kc)) + dead - (nf-1)*p ] / nf
+    def run_eff
+      return run_um unless fit_run &amp;&amp; use_target
+      nf = n_fingers
+      r  = (w_um * (n_squares + 2.0 * (nf - 1) * (1.0 - k_corner)) +
+            dead_len - (nf - 1) * pitch_um) / nf
+      r  = gsnap(r)
+      rmin = gsnap_up(dead_len + w_um)
+      r = rmin   if r &lt; rmin
+      r = run_um if r &gt; run_um
+      r
+    end
+
+    # Cuadros realmente construidos.
+    def n_squares_real(nf = nil)
+      nf ||= n_fingers
+      len = nf * run_eff + (nf - 1) * pitch_um
+      (len - dead_len) / w_um - 2.0 * (nf - 1) * (1.0 - k_corner)
+    end
+
+    def r_ohm(nf = nil)
+      n_squares_real(nf) * rsq
+    end
+
+    # ------------------------------------------------------------------------
+    def display_text_impl
+      nf = n_fingers
+      format("R_HiRes %.5g ohm  (%.5g cuadros, %d dedos, W=%g um, run=%g um, pitch=%g um)",
+             r_ohm(nf), n_squares_real(nf), nf, w_um, run_eff, pitch_um)
+    end
+
+    # ------------------------------------------------------------------------
+    #  Coercion: todo se fuerza a rejilla y a los minimos del drc.lydrc.
+    # ------------------------------------------------------------------------
+    def coerce_parameters_impl
+
+      # Sobredimension de HR (multiplo de GRID para que hw quede en GRID2)
+      hro = [gsnap(hr_over_um), 0.0].max
+      set_hr_over_um(hro)
+
+      # Ancho de trazo:
+      #   - regla 3.1 : poly  &gt;= PL_W
+      #   - regla 27.1: HR    &gt;= HR_W   con  HR = W + 2*hr_over
+      wmin = [PL_W, HR_W - 2.0 * hro].max
+      set_w_um([g2_up(w_um), g2_up(wmin)].max)
+
+      # Retiro de HR al contacto: regla 27.3
+      set_hr_ct_space_um([gsnap_up(hr_ct_space_um), gsnap_up(HR_S_CT)].max)
+
+      # Penetracion del marcador de terminal
+      set_term_ov_um([gsnap_up(term_ov_um), GRID].max)
+
+      # Paso vertical:
+      #   - regla 27.2: espacio HR-HR  &gt;= HR_S     =&gt; pitch &gt;= (W+2*hro) + HR_S
+      #   - regla 3.2 : espacio poly   &gt;= PL_S     =&gt; pitch &gt;= W + PL_S
+      pmin = [w_um + 2.0 * hro + HR_S, w_um + PL_S].max
+      set_pitch_um([gsnap_up(pitch_um), gsnap_up(pmin)].max)
+
+      # Largo de dedo: debe quedar cuerpo resistivo despues de recortar ambos
+      # extremos, con al menos un cuadro util.
+      rmin = dead_len + w_um
+      set_run_um([gsnap_up(run_um), gsnap_up(rmin)].max)
+
+      # Cabeza: debe alojar un contacto con su encierro de poly (regla 5.2b)
+      set_head_len_um([g2_up(head_len_um), g2_up(CT_SIZE + 2 * PL_ENC_CT)].max)
+
+      set_n_squares(1.0) if n_squares &lt;= 0.0
+      set_fingers(2)     if fingers &lt; 2
+      set_k_corner(0.0)  if k_corner &lt; 0.0
+      set_k_corner(1.0)  if k_corner &gt; 1.0
+      set_rsq(1.0)       if rsq &lt;= 0.0
+    end
+
+    # ------------------------------------------------------------------------
+    def produce_impl
+
+      ly     = layout
+      li_pl  = ly.layer(L_PL)
+      li_hr  = ly.layer(L_HR)
+      li_ctp = ly.layer(L_CTP)
+      li_m1  = ly.layer(L_M1)
+      li_m1t = ly.layer(L_M1T)
+      li_rb  = ly.layer(L_RBODY)
+      li_rt  = ly.layer(L_RTERM)
+      li_rx  = ly.layer(L_RTXT)
+
+      w    = w_um
+      hw   = w + 2.0 * hr_over_um       # ancho del HiRes
+      run  = run_eff
+      p    = pitch_um
+      hl   = head_len_um
+      ov   = term_ov_um
+      hwid = head_w
+      trim = trim_len
+      nf   = n_fingers
+
+      # ---- Trayectoria del serpentin (centro del trazo) --------------------
+      pts = [[0.0, 0.0]]
+      x = 0.0
+      y = 0.0
+      d = 1.0
+      nf.times do |i|
+        x += run * d
+        pts &lt;&lt; [x, y]
+        if i &lt; nf - 1
+          y += p
+          pts &lt;&lt; [x, y]
+          d = -d
+        end
+      end
+      xe, ye = pts.last
+      dlast  = d                        # +1 si el ultimo dedo va hacia +x
+
+      # ---- Cuerpo de Poly1 (trayectoria completa) --------------------------
+      put_path(li_pl, pts, w)
+
+      # ---- Cabezas de Poly1 ------------------------------------------------
+      # Se solapan GRID2 con el cuerpo para evitar aristas coincidentes.
+      ha_cut = dbox(-hl, -hwid / 2.0, 0.0, hwid / 2.0)
+      ha_pl  = dbox(-hl, -hwid / 2.0, GRID2, hwid / 2.0)
+
+      if dlast &gt; 0
+        hb_cut = dbox(xe, ye - hwid / 2.0, xe + hl, ye + hwid / 2.0)
+        hb_pl  = dbox(xe - GRID2, ye - hwid / 2.0, xe + hl, ye + hwid / 2.0)
+      else
+        hb_cut = dbox(xe - hl, ye - hwid / 2.0, xe, ye + hwid / 2.0)
+        hb_pl  = dbox(xe - hl, ye - hwid / 2.0, xe + GRID2, ye + hwid / 2.0)
+      end
+
+      put(li_pl, ha_pl)
+      put(li_pl, hb_pl)
+
+      # ---- HiRes y ResBody sobre la trayectoria RECORTADA ------------------
+      tp = pts.map { |q| q.dup }
+      tp[0][0]  = trim                  # el primer dedo arranca en +x
+      tp[-1][0] = xe - dlast * trim
+
+      put_path(li_hr, tp, hw)           # 34/0 - mascara de alta resistencia
+      if gen_markers
+        # Ancho del POLY (no del HR): asi  res_body &amp; hres  = region conductora.
+        put_path(li_rb, tp, w)          # 70/0 - ResBody
+      end
+
+      # ---- Contactos de poly (47/0) ---------------------------------------
+      cts_a = cut_array(ha_cut, CT_SIZE, CT_S, PL_ENC_CT)
+      cts_b = cut_array(hb_cut, CT_SIZE, CT_S, PL_ENC_CT)
+      put_all(li_ctp, cts_a)
+      put_all(li_ctp, cts_b)
+
+      # ---- Pads de Metal1 (49/0) ------------------------------------------
+      pad_a = at_least(grow(bbox_of(cts_a), M1_ENC_CT), M1_W, M1_W)
+      pad_b = at_least(grow(bbox_of(cts_b), M1_ENC_CT), M1_W, M1_W)
+      put(li_m1, pad_a)
+      put(li_m1, pad_b)
+
+      # ---- Marcadores de terminal (70/1) ----------------------------------
+      # Deben abutir el cuerpo: se extienden term_ov dentro de la region HR.
+      if gen_markers
+        ta = dbox([pad_a.left, -hl].min, -hwid / 2.0, trim + ov, hwid / 2.0)
+        if dlast &gt; 0
+          tb = dbox(xe - dlast * trim - ov, ye - hwid / 2.0,
+                    [pad_b.right, xe + hl].max, ye + hwid / 2.0)
+        else
+          tb = dbox([pad_b.left, xe - hl].min, ye - hwid / 2.0,
+                    xe + trim + ov, ye + hwid / 2.0)
+        end
+        put(li_rt, ta)
+        put(li_rt, tb)
+      end
+
+      # ---- Etiquetas -------------------------------------------------------
+      th = [g2(w * 0.6), 5.0].max
+      put_text(li_m1t, label_a, pad_a.center.x, pad_a.center.y, th)
+      put_text(li_m1t, label_b, pad_b.center.x, pad_b.center.y, th)
+      if gen_markers
+        # Res.text (70/2): EXT.lylvs hace connect(res_term, res_txt)
+        put_text(li_rx, label_a, pad_a.center.x, pad_a.center.y, th)
+        put_text(li_rx, label_b, pad_b.center.x, pad_b.center.y, th)
+      end
+    end
+  end
+end
+# ============================================================================
+#  PCell 2/6 : MOSFET NMOS / PMOS multi-dedo
+# ============================================================================
+#
+#  Orientacion:  el canal (W) corre en Y, los dedos se reparten en X.
+#
+#         riel de fuente (M1)          y = W + M1_S .. + rail_w
+#      ================================
+#         |    |    |    |    |
+#      +--|----|----|----|----|--+     y = W        ^
+#      |  S    D    S    D    S  |     ACTIVO       | W
+#      +--|----|----|----|----|--+     y = 0        v
+#         |  [gates de poly]  |
+#      ---+--------------------+---     bus de poly  y = -gate_ext
+#   [pad G]
+#      ================================  riel de drenaje (M1)
+#
+#  Notas de DRC contempladas:
+#   * 3.3  el poly sobrepasa la compuerta PL_ENC_GATE arriba y gate_ext abajo
+#   * 3.4  el largo de fuente/drenaje sd_len &gt;= AA_ENC_GATE
+#   * 5.4  los contactos de activo quedan CTAA_S_GATE de la compuerta
+#   * 5.6b los contactos del bus de poly quedan CTPL_S_AA del activo, por eso
+#          el pad de compuerta se saca a la IZQUIERDA del activo
+#   * 2.3  el pozo encierra fuente/drenaje NW_ENC_SD
+#   * 2.4  el pozo encierra el tap de bulk NW_ENC_TAP
+#   * 2.5  activo N+ a activo P+ &gt;= NP_S_PP  (fija el hueco minimo del anillo)
+#
+#  El riel de drenaje pasa por DEBAJO del bus de compuerta: M1 sobre poly no
+#  tiene regla de separacion en este proceso, y como no se dibuja CapBody
+#  (71/0) tampoco se extrae un capacitor MIP parasito.
+# ============================================================================
+
+module CIDESI_CM05_PCells
+
+  class Mosfet &lt; PCellDeclarationHelper
+
+    include RBA
+    include Helpers
+
+    NMOS = 0
+    PMOS = 1
+
+    def initialize
+      super
+
+      param(:mos_type, TypeInt, "Tipo de transistor", :default =&gt; NMOS,
+            :choices =&gt; [["NMOS", NMOS], ["PMOS", PMOS]])
+
+      # --- Dimensiones electricas ---
+      param(:w_um,   TypeDouble, "W - ancho de canal por dedo (um)", :default =&gt; 100.0)
+      param(:l_um,   TypeDouble, "L - largo de canal (um)",          :default =&gt; 10.0)
+      param(:nfing,  TypeInt,    "Numero de dedos",                  :default =&gt; 1)
+
+      # --- Geometria de fuente/drenaje y compuerta ---
+      param(:sd_len_um,       TypeDouble, "Largo de fuente/drenaje (um)",   :default =&gt; 15.0)
+      param(:gate_ext_um,     TypeDouble, "Bajada del bus de compuerta (um)", :default =&gt; 12.5)
+      param(:bus_w_um,        TypeDouble, "Ancho del bus de compuerta (um)",  :default =&gt; 10.0)
+      param(:gate_pad_len_um, TypeDouble, "Largo del pad de compuerta (um)",  :default =&gt; 12.5)
+
+      # --- Pozo ---
+      param(:draw_well, TypeBoolean, "Dibujar pozo (NW en PMOS / PW en NMOS)", :default =&gt; true)
+
+      # --- Ruteo ---
+      param(:connect_sd, TypeBoolean, "Unir fuentes y drenajes con rieles M1", :default =&gt; true)
+      param(:rail_w_um,  TypeDouble,  "Ancho de los rieles M1 (um)",           :default =&gt; 10.0)
+
+      # --- Anillo de guarda ---
+      param(:draw_guard,   TypeBoolean, "Anillo de guarda / tap de bulk", :default =&gt; false)
+      param(:guard_gap_um, TypeDouble,  "Hueco al anillo de guarda (um)", :default =&gt; 10.0)
+      param(:guard_w_um,   TypeDouble,  "Ancho del anillo de guarda (um)",:default =&gt; 10.0)
+
+      # --- Etiquetas y contorno ---
+      param(:label_d, TypeString, "Etiqueta drenaje", :default =&gt; "D")
+      param(:label_s, TypeString, "Etiqueta fuente",  :default =&gt; "S")
+      param(:label_g, TypeString, "Etiqueta compuerta", :default =&gt; "G")
+      param(:label_b, TypeString, "Etiqueta bulk",    :default =&gt; "B")
+
+      param(:gen_die,       TypeBoolean, "Generar contorno Die.outline (100/0)", :default =&gt; false)
+      param(:die_margin_um, TypeDouble,  "Margen del contorno de die (um)",      :default =&gt; 25.0)
+    end
+
+    def pmos?
+      mos_type == PMOS
+    end
+
+    def aa_len
+      nfing * l_um + (nfing + 1) * sd_len_um
+    end
+
+    def display_text_impl
+      format("%s W=%gu L=%gu x%d dedos (W total = %gu)",
+             pmos? ? "PMOS" : "NMOS", w_um, l_um, nfing, w_um * nfing)
+    end
+
+    # ------------------------------------------------------------------------
+    def coerce_parameters_impl
+
+      set_nfing(1) if nfing &lt; 1
+
+      # L: regla 3.1 (ancho min. de poly)
+      set_l_um([g2_up(l_um), g2_up(PL_W)].max)
+
+      # W: regla 2.1 (ancho min. de activo) y espacio para un contacto con su
+      #    encierro (regla 6.2b)
+      wmin = [AA_W, CT_SIZE + 2 * AA_ENC_CT].max
+      set_w_um([g2_up(w_um), g2_up(wmin)].max)
+
+      # Fuente/drenaje: regla 3.4 y espacio para el contacto separado de ambas
+      # compuertas por CTAA_S_GATE (regla 5.4)
+      sdmin = [AA_ENC_GATE, CT_SIZE + 2 * CTAA_S_GATE].max
+      set_sd_len_um([g2_up(sd_len_um), g2_up(sdmin)].max)
+
+      # Bus de compuerta: debe alojar un contacto con encierro de poly (5.2b)
+      set_bus_w_um([g2_up(bus_w_um), g2_up([PL_W, CT_SIZE + 2 * PL_ENC_CT].max)].max)
+
+      # Bajada del bus: el bus no debe acercarse al activo mas de PL_S_AA (3.5)
+      # y el poly debe sobrepasar la compuerta PL_ENC_GATE (3.3)
+      gemin = [bus_w_um + PL_S_AA, PL_ENC_GATE].max
+      set_gate_ext_um([gsnap_up(gate_ext_um), gsnap_up(gemin)].max)
+
+      # Pad de compuerta: contacto a CTPL_S_AA del activo (5.6b) + encierro
+      gpmin = CTPL_S_AA + CT_SIZE + PL_ENC_CT
+      set_gate_pad_len_um([g2_up(gate_pad_len_um), g2_up(gpmin)].max)
+
+      # Rieles de M1: regla 7.1
+      set_rail_w_um([g2_up(rail_w_um), g2_up(M1_W)].max)
+
+      # Anillo de guarda:
+      #   - regla 2.5 : activo N+ a activo P+ &gt;= NP_S_PP
+      #   - los selects (que sobresalen SEL_ENC_AA) no deben traslaparse,
+      #     lo que exige tambien &gt;= 2*SEL_ENC_AA
+      #   - regla 7.2 : separacion de M1
+      ggmin = [AA_S, NP_S_PP, 2 * SEL_ENC_AA, M1_S].max
+      set_guard_gap_um([g2_up(guard_gap_um), g2_up(ggmin)].max)
+      set_guard_w_um([g2_up(guard_w_um), g2_up([AA_W, CT_SIZE + 2 * AA_ENC_CT].max)].max)
+
+      set_die_margin_um(gsnap_up([die_margin_um, 0.0].max))
+    end
+
+    # ------------------------------------------------------------------------
+    def produce_impl
+
+      ly     = layout
+      li_aa  = ly.layer(L_AA)
+      li_pl  = ly.layer(L_PL)
+      li_cta = ly.layer(L_CTA)
+      li_ctp = ly.layer(L_CTP)
+      li_m1  = ly.layer(L_M1)
+      li_m1t = ly.layer(L_M1T)
+      li_sel = ly.layer(pmos? ? L_PSEL : L_NSEL)   # dopado del canal
+      li_bsel= ly.layer(pmos? ? L_NSEL : L_PSEL)   # dopado del tap de bulk
+      li_nw  = ly.layer(L_NW)
+      li_pw  = ly.layer(L_PW)
+
+      w   = w_um
+      l   = l_um
+      sd  = sd_len_um
+      nf  = nfing
+      alen = aa_len
+
+      # ---- Activo -----------------------------------------------------------
+      aa = dbox(0.0, 0.0, alen, w)
+      put(li_aa, aa)
+
+      # ---- Select del canal (regla 4.2) ------------------------------------
+      put(li_sel, grow(aa, SEL_ENC_AA))
+
+      # ---- Compuertas -------------------------------------------------------
+      gates = []
+      nf.times do |i|
+        x0 = sd + i * (l + sd)
+        gates &lt;&lt; dbox(x0, -gate_ext_um, x0 + l, w + PL_ENC_GATE)
+      end
+      put_all(li_pl, gates)
+
+      # ---- Bus de compuerta + pad ------------------------------------------
+      bus = dbox(-gate_pad_len_um, -gate_ext_um,
+                 alen,             -gate_ext_um + bus_w_um)
+      put(li_pl, bus)
+
+      # Contactos del bus: solo en la extension izquierda, para respetar 5.6b
+      gct_region = dbox(-gate_pad_len_um, -gate_ext_um,
+                        -CTPL_S_AA + PL_ENC_CT, -gate_ext_um + bus_w_um)
+      gcts = cut_array(gct_region, CT_SIZE, CT_S, PL_ENC_CT)
+      put_all(li_ctp, gcts)
+
+      gpad = at_least(grow(bbox_of(gcts), M1_ENC_CT), M1_W, M1_W)
+      put(li_m1, gpad)
+
+      # ---- Contactos y tiras de fuente/drenaje ------------------------------
+      # Region j = 0..nf ; j par = FUENTE, j impar = DRENAJE
+      src_straps = []
+      drn_straps = []
+
+      (nf + 1).times do |j|
+        xj  = j * (l + sd)
+        reg = dbox(xj + CTAA_S_GATE, AA_ENC_CT,
+                   xj + sd - CTAA_S_GATE, w - AA_ENC_CT)
+        cts = cut_array(reg, CT_SIZE, CT_S, 0.0)
+        next if cts.empty?
+        put_all(li_cta, cts)
+
+        strap = at_least(grow(bbox_of(cts), M1_ENC_CT), M1_W, M1_W)
+        if j.even?
+          src_straps &lt;&lt; strap
+        else
+          drn_straps &lt;&lt; strap
+        end
+      end
+
+      # ---- Rieles de M1 -----------------------------------------------------
+      src_rail = nil
+      drn_rail = nil
+
+      if connect_sd
+        # Riel de fuente ARRIBA del activo
+        sr_b = gsnap_up(w + M1_S)
+        src_rail = dbox(0.0, sr_b, alen, sr_b + rail_w_um)
+
+        # Riel de drenaje ABAJO del bus de poly (M1 sobre poly esta permitido)
+        dr_t = gsnap_dn(-gate_ext_um - M1_S)
+        drn_rail = dbox(0.0, dr_t - rail_w_um, alen, dr_t)
+
+        put(li_m1, src_rail)
+        put(li_m1, drn_rail)
+
+        # Alargar las tiras hasta su riel
+        src_straps = src_straps.map { |b| dbox(b.left, b.bottom, b.right, src_rail.top) }
+        drn_straps = drn_straps.map { |b| dbox(b.left, drn_rail.bottom, b.right, b.top) }
+      end
+
+      put_all(li_m1, src_straps)
+      put_all(li_m1, drn_straps)
+
+      # ---- Pozo -------------------------------------------------------------
+      # Regla 2.3: el pozo encierra fuente/drenaje NW_ENC_SD.
+      well = grow(aa, NW_ENC_SD)
+
+      # ---- Anillo de guarda / tap de bulk -----------------------------------
+      # Encierra TODO el contenido (activo, poly y rieles) para que ningun poly
+      # cruce el anillo y genere una compuerta parasita.
+      content = bbox_of([aa, bus, gpad, well].compact +
+                        gates + src_straps + drn_straps +
+                        [src_rail, drn_rail].compact)
+
+      if draw_guard
+        g_in  = grow(content, guard_gap_um)
+        g_out = grow(g_in, guard_w_um)
+
+        segs = put_ring(li_aa, g_out, guard_w_um)
+        put_ring(li_bsel, grow(g_out, SEL_ENC_AA), guard_w_um + 2 * SEL_ENC_AA)
+
+        gcts_ring = []
+        segs.each { |b| gcts_ring.concat(cut_array(b, CT_SIZE, CT_S, AA_ENC_CT)) }
+        put_all(li_cta, gcts_ring)
+        put_ring(li_m1, g_out, guard_w_um)
+
+        put_text(li_m1t, label_b, g_out.center.x, g_out.bottom + guard_w_um / 2.0, 5.0)
+
+        # El pozo debe encerrar el tap de bulk (regla 2.4) cuando el tap vive
+        # dentro del pozo, es decir en el PMOS.
+        well = grow(g_out, NW_ENC_TAP) if pmos?
+        content = g_out
+      end
+
+      if pmos?
+        # regla 1.1: ancho minimo de pozo
+        put(li_nw, at_least(well, NW_W, NW_W))
+      elsif draw_well
+        # OJO: EXT.lylvs no lee la capa 41/0 (define psub = chip - nwell), asi
+        # que el PWell es puramente geometrico/DRC y no afecta la extraccion.
+        #   - regla 2.3: el pozo encierra fuente/drenaje NW_ENC_SD
+        #   - regla 2.4: el pozo encierra el tap de bulk NW_ENC_TAP
+        #   - regla 1.1: ancho minimo NW_W
+        pw_box = draw_guard ? grow(content, NW_ENC_TAP) : grow(aa, NW_ENC_SD)
+        put(li_pw, at_least(pw_box, NW_W, NW_W))
+      end
+
+      # ---- Etiquetas --------------------------------------------------------
+      put_text(li_m1t, label_g, gpad.center.x, gpad.center.y, 5.0)
+      unless src_straps.empty?
+        b = src_straps.first
+        put_text(li_m1t, label_s, b.center.x, connect_sd ? src_rail.center.y : b.center.y, 5.0)
+      end
+      unless drn_straps.empty?
+        b = drn_straps.first
+        put_text(li_m1t, label_d, b.center.x, connect_sd ? drn_rail.center.y : b.center.y, 5.0)
+      end
+
+      # ---- Contorno de die opcional (capa 100/0) ----------------------------
+      put_die_outline(ly.layer(L_DIE), content, die_margin_um) if gen_die
+    end
+  end
+end
+# ============================================================================
+#  PCells 3/6 y 4/6 : CAPACITORES MIP (M1-Poly) y MiM (M2-M1)
+# ============================================================================
+#
+#  IMPORTANTE - lee esto antes de correr LVS
+#  ------------------------------------------------------------------------
+#  EXT.lylvs usa hoy la forma de 4 capas del extractor:
+#
+#      extract_devices(capacitor("C_MIP", 5.0e-16),
+#                      { "P1"=&gt;..., "P2"=&gt;..., "tA"=&gt;cap_tA, "tB"=&gt;cap_tB })
+#      connect(cap_tA, m2)
+#      connect(cap_tB, m1)
+#
+#  Eso solo es consistente con el MiM (placa inferior M1, superior M2).  Para
+#  el MIP la placa inferior es POLY, y como cap_tB esta conectado a m1, el
+#  marcador de terminal B tocaria la placa SUPERIOR de M1 y la cortocircuitaria.
+#
+#  La forma correcta -y mas simple- es la de 2 capas: ambas placas ya son
+#  conductores que viven en el grafo de conectividad, asi que no hacen falta
+#  capas de terminal.  Ver EXT_capacitores_corregido.txt que acompana a este
+#  archivo.
+#
+#  Estas PCells dibujan CapBody/CapTermA/CapTermB de todos modos para no
+#  romper compatibilidad, pero las placas estan hechas COINCIDENTES para que
+#  area(P1) == area(P2) exactamente, que es lo unico que el extractor necesita.
+# ============================================================================
+
+module CIDESI_CM05_PCells
+
+  # --------------------------------------------------------------------------
+  #  Capacitor MIP : placa inferior de Poly1, placa superior de Metal1
+  #
+  #     [pad M1 B]--tab de poly--[==== PLACA ====]--tab de M1--[pad M2 A]
+  #                                poly + M1                     via1
+  #
+  #  El terminal B sale por poly -&gt; contacto 47/0 -&gt; M1.
+  #  El terminal A sale por M1   -&gt; via1 50/0     -&gt; M2.
+  #  Se van por lados opuestos para que nunca se toquen en M1.
+  # --------------------------------------------------------------------------
+  class CapacitorMIP &lt; PCellDeclarationHelper
+
+    include RBA
+    include Helpers
+
+    def initialize
+      super
+      param(:plate_w_um, TypeDouble, "Ancho de placa (um)", :default =&gt; 50.0)
+      param(:plate_h_um, TypeDouble, "Alto de placa (um)",  :default =&gt; 20.0)
+      param(:tab_w_um,   TypeDouble, "Ancho de los tabs (um)",  :default =&gt; 10.0)
+      param(:tab_len_um, TypeDouble, "Largo de los tabs (um)",  :default =&gt; 20.0)
+      param(:c_area,     TypeDouble, "Capacitancia por area (fF/um2)", :default =&gt; C_MIP_AREA)
+      param(:c_fringe,   TypeDouble, "Capacitancia de borde (fF/um)",  :default =&gt; C_FRINGE)
+      param(:label_a,    TypeString, "Etiqueta placa superior (M2)", :default =&gt; "A")
+      param(:label_b,    TypeString, "Etiqueta placa inferior (poly)", :default =&gt; "B")
+      param(:gen_markers, TypeBoolean, "Generar marcadores LVS (71/0..71/3)", :default =&gt; true)
+      param(:gen_die,     TypeBoolean, "Generar contorno Die.outline (100/0)", :default =&gt; false)
+      param(:die_margin_um, TypeDouble, "Margen del contorno de die (um)", :default =&gt; 25.0)
+    end
+
+    def cap_ff
+      a = plate_w_um * plate_h_um
+      p = 2.0 * (plate_w_um + plate_h_um)
+      c_area * a + c_fringe * p
+    end
+
+    def display_text_impl
+      format("C_MIP %.4g fF  (%g x %g um, %.4g fF de area + %.4g fF de borde)",
+             cap_ff, plate_w_um, plate_h_um,
+             c_area * plate_w_um * plate_h_um,
+             c_fringe * 2.0 * (plate_w_um + plate_h_um))
+    end
+
+    def coerce_parameters_impl
+      pmin = [PL_W, M1_W].max
+      set_plate_w_um([g2_up(plate_w_um), g2_up(pmin)].max)
+      set_plate_h_um([g2_up(plate_h_um), g2_up(pmin)].max)
+
+      # El tab debe alojar un contacto (o una via) con su encierro.
+      tmin = [PL_W, M1_W, CT_SIZE + 2 * PL_ENC_CT, V1_SIZE + 2 * M1_ENC_V1].max
+      tw = [g2_up(tab_w_um), g2_up(tmin)].max
+      tw = plate_h_um if tw &gt; plate_h_um
+      set_tab_w_um(tw)
+
+      # Lado B: contacto + encierro + separacion de M1 a la placa (regla 7.2)
+      lb = (CT_SIZE + 2 * PL_ENC_CT) + (M1_S + M1_ENC_CT)
+      # Lado A: la via debe alejarse V1_S_CT del borde de poly (regla 8.5)
+      la = V1_S_CT + V1_SIZE + 2 * M1_ENC_V1
+      set_tab_len_um([g2_up(tab_len_um), g2_up([lb, la].max)].max)
+
+      set_die_margin_um(gsnap_up([die_margin_um, 0.0].max))
+    end
+
+    def produce_impl
+      ly     = layout
+      li_pl  = ly.layer(L_PL)
+      li_m1  = ly.layer(L_M1)
+      li_m2  = ly.layer(L_M2)
+      li_ctp = ly.layer(L_CTP)
+      li_v1  = ly.layer(L_V1)
+      li_m1t = ly.layer(L_M1T)
+      li_m2t = ly.layer(L_M2T)
+      li_cb  = ly.layer(L_CBODY)
+      li_ca  = ly.layer(L_CTMA)
+      li_cbb = ly.layer(L_CTMB)
+      li_cx  = ly.layer(L_CTXT)
+
+      pw = plate_w_um
+      ph = plate_h_um
+      tw = tab_w_um
+      tl = tab_len_um
+
+      tb = (ph - tw) / 2.0
+      tt = tb + tw
+
+      # ---- Placas COINCIDENTES ---------------------------------------------
+      plate = dbox(0.0, 0.0, pw, ph)
+      put(li_pl, plate)          # placa inferior: Poly1
+      put(li_m1, plate)          # placa superior: Metal1
+      put(li_cb, plate) if gen_markers
+
+      # ---- Terminal B: tab de poly -&gt; contactos -&gt; pad de M1 ---------------
+      tab_b = dbox(-tl, tb, 0.0, tt)
+      put(li_pl, tab_b)
+
+      ctb_reg = dbox(-tl, tb, -(M1_S + M1_ENC_CT), tt)
+      ctb = cut_array(ctb_reg, CT_SIZE, CT_S, PL_ENC_CT)
+      put_all(li_ctp, ctb)
+      pad_b = at_least(grow(bbox_of(ctb), M1_ENC_CT), M1_W, M1_W)
+      put(li_m1, pad_b)
+
+      # ---- Terminal A: tab de M1 -&gt; vias -&gt; pad de M2 ----------------------
+      tab_a = dbox(pw, tb, pw + tl, tt)
+      put(li_m1, tab_a)
+
+      # regla 8.5: la via se aleja V1_S_CT del borde de poly (x = pw)
+      va_reg = dbox(pw + V1_S_CT, tb, pw + tl, tt)
+      vas = cut_array(va_reg, V1_SIZE, V1_S, M1_ENC_V1)
+      put_all(li_v1, vas)
+      pad_a = at_least(grow(bbox_of(vas), M2_ENC_V1), M2_W, M2_W)
+      put(li_m2, pad_a)
+
+      # ---- Marcadores LVS ---------------------------------------------------
+      if gen_markers
+        # A: cubre un tramo de la placa de M1 y llega al pad de M2.
+        #    Tocar M1 no genera corto porque EXT solo hace connect(cap_tA, m2).
+        put(li_ca, dbox(pw - GRID2, tb, [pad_a.right, pw + tl].max, tt))
+        # B: vive solo sobre poly desnudo y el pad de M1 del lado izquierdo.
+        put(li_cbb, dbox([pad_b.left, -tl].min, tb, 0.0, tt))
+      end
+
+      # ---- Etiquetas --------------------------------------------------------
+      put_text(li_m1t, label_b, pad_b.center.x, pad_b.center.y, 5.0)
+      put_text(li_m2t, label_a, pad_a.center.x, pad_a.center.y, 5.0)
+      if gen_markers
+        put_text(li_cx, label_a, pad_a.center.x, pad_a.center.y, 5.0)
+        put_text(li_cx, label_b, pad_b.center.x, pad_b.center.y, 5.0)
+      end
+
+      if gen_die
+        put_die_outline(ly.layer(L_DIE),
+                        bbox_of([plate, tab_a, tab_b, pad_a, pad_b]), die_margin_um)
+      end
+    end
+  end
+
+  # --------------------------------------------------------------------------
+  #  Capacitor MiM : placa inferior de Metal1, placa superior de Metal2
+  #
+  #  No hace falta ninguna via: cada placa sale por su propio metal.
+  # --------------------------------------------------------------------------
+  class CapacitorMIM &lt; PCellDeclarationHelper
+
+    include RBA
+    include Helpers
+
+    def initialize
+      super
+      param(:plate_w_um, TypeDouble, "Ancho de placa (um)", :default =&gt; 50.0)
+      param(:plate_h_um, TypeDouble, "Alto de placa (um)",  :default =&gt; 20.0)
+      param(:tab_w_um,   TypeDouble, "Ancho de los tabs (um)", :default =&gt; 10.0)
+      param(:tab_len_um, TypeDouble, "Largo de los tabs (um)", :default =&gt; 15.0)
+      param(:c_area,     TypeDouble, "Capacitancia por area (fF/um2)", :default =&gt; C_MIM_AREA)
+      param(:c_fringe,   TypeDouble, "Capacitancia de borde (fF/um)",  :default =&gt; C_FRINGE)
+      param(:label_a,    TypeString, "Etiqueta placa superior (M2)", :default =&gt; "A")
+      param(:label_b,    TypeString, "Etiqueta placa inferior (M1)", :default =&gt; "B")
+      param(:gen_markers, TypeBoolean, "Generar marcadores LVS (71/0..71/3)", :default =&gt; true)
+      param(:gen_die,     TypeBoolean, "Generar contorno Die.outline (100/0)", :default =&gt; false)
+      param(:die_margin_um, TypeDouble, "Margen del contorno de die (um)", :default =&gt; 25.0)
+    end
+
+    def cap_ff
+      a = plate_w_um * plate_h_um
+      p = 2.0 * (plate_w_um + plate_h_um)
+      c_area * a + c_fringe * p
+    end
+
+    def display_text_impl
+      format("C_MiM %.4g fF  (%g x %g um, %.4g fF de area + %.4g fF de borde)",
+             cap_ff, plate_w_um, plate_h_um,
+             c_area * plate_w_um * plate_h_um,
+             c_fringe * 2.0 * (plate_w_um + plate_h_um))
+    end
+
+    def coerce_parameters_impl
+      pmin = [M1_W, M2_W].max
+      set_plate_w_um([g2_up(plate_w_um), g2_up(pmin)].max)
+      set_plate_h_um([g2_up(plate_h_um), g2_up(pmin)].max)
+
+      tw = [g2_up(tab_w_um), g2_up(pmin)].max
+      tw = plate_h_um if tw &gt; plate_h_um
+      set_tab_w_um(tw)
+
+      set_tab_len_um([g2_up(tab_len_um), g2_up([M1_W, M2_W].max)].max)
+      set_die_margin_um(gsnap_up([die_margin_um, 0.0].max))
+    end
+
+    def produce_impl
+      ly     = layout
+      li_m1  = ly.layer(L_M1)
+      li_m2  = ly.layer(L_M2)
+      li_m1t = ly.layer(L_M1T)
+      li_m2t = ly.layer(L_M2T)
+      li_cb  = ly.layer(L_CBODY)
+      li_ca  = ly.layer(L_CTMA)
+      li_cbb = ly.layer(L_CTMB)
+      li_cx  = ly.layer(L_CTXT)
+
+      pw = plate_w_um
+      ph = plate_h_um
+      tw = tab_w_um
+      tl = tab_len_um
+      tb = (ph - tw) / 2.0
+      tt = tb + tw
+
+      plate = dbox(0.0, 0.0, pw, ph)
+      put(li_m1, plate)          # placa inferior
+      put(li_m2, plate)          # placa superior
+      put(li_cb, plate) if gen_markers
+
+      tab_b = dbox(-tl, tb, 0.0, tt)      # sale en M1 por la izquierda
+      tab_a = dbox(pw, tb, pw + tl, tt)   # sale en M2 por la derecha
+      put(li_m1, tab_b)
+      put(li_m2, tab_a)
+
+      if gen_markers
+        put(li_cbb, dbox(-tl, tb, 0.0, tt))
+        put(li_ca,  dbox(pw, tb, pw + tl, tt))
+      end
+
+      put_text(li_m1t, label_b, tab_b.center.x, tab_b.center.y, 5.0)
+      put_text(li_m2t, label_a, tab_a.center.x, tab_a.center.y, 5.0)
+      if gen_markers
+        put_text(li_cx, label_a, tab_a.center.x, tab_a.center.y, 5.0)
+        put_text(li_cx, label_b, tab_b.center.x, tab_b.center.y, 5.0)
+      end
+
+      if gen_die
+        put_die_outline(ly.layer(L_DIE),
+                        bbox_of([plate, tab_a, tab_b]), die_margin_um)
+      end
+    end
+  end
+end
+# ============================================================================
+#  PCells 5/6 y 6/6 : UTILITARIAS
+#    - BulkTap   : contacto a sustrato P / a pozo N
+#    - GuardRing : anillo de guarda (con hueco opcional para sacar el ruteo)
+#    - CutArray  : generador generico de arreglos de contactos y vias
+# ============================================================================
+
+module CIDESI_CM05_PCells
+
+  # --------------------------------------------------------------------------
+  #  Tap de bulk rectangular
+  #
+  #  PSUB  : activo + P+ (44/0), fuera de pozo N.  EXT lo reconoce como
+  #          psubcontact = active_outside_nwell &amp; pplus, y lo conecta a psub.
+  #  NWELL : activo + N+ (45/0) dentro de un pozo N (42/0).  EXT lo reconoce
+  #          como nwellcontact = active_in_nwell &amp; nplus.
+  # --------------------------------------------------------------------------
+  class BulkTap &lt; PCellDeclarationHelper
+
+    include RBA
+    include Helpers
+
+    PSUB  = 0
+    NWELL = 1
+
+    def initialize
+      super
+      param(:tap_type, TypeInt, "Tipo de tap", :default =&gt; PSUB,
+            :choices =&gt; [["Sustrato P (P+)", PSUB], ["Pozo N (N+)", NWELL]])
+      param(:w_um, TypeDouble, "Ancho del activo (um)", :default =&gt; 20.0)
+      param(:h_um, TypeDouble, "Alto del activo (um)",  :default =&gt; 20.0)
+      param(:label, TypeString, "Etiqueta", :default =&gt; "GND")
+      param(:gen_die,       TypeBoolean, "Generar contorno Die.outline (100/0)", :default =&gt; false)
+      param(:die_margin_um, TypeDouble,  "Margen del contorno de die (um)", :default =&gt; 25.0)
+    end
+
+    def nwell?
+      tap_type == NWELL
+    end
+
+    def display_text_impl
+      format("Tap %s %g x %g um", nwell? ? "NWELL (N+)" : "PSUB (P+)", w_um, h_um)
+    end
+
+    def coerce_parameters_impl
+      amin = [AA_W, CT_SIZE + 2 * AA_ENC_CT].max
+      set_w_um([g2_up(w_um), g2_up(amin)].max)
+      set_h_um([g2_up(h_um), g2_up(amin)].max)
+      set_die_margin_um(gsnap_up([die_margin_um, 0.0].max))
+    end
+
+    def produce_impl
+      ly     = layout
+      li_aa  = ly.layer(L_AA)
+      li_sel = ly.layer(nwell? ? L_NSEL : L_PSEL)
+      li_cta = ly.layer(L_CTA)
+      li_m1  = ly.layer(L_M1)
+      li_m1t = ly.layer(L_M1T)
+      li_nw  = ly.layer(L_NW)
+
+      aa = dbox(0.0, 0.0, w_um, h_um)
+      put(li_aa, aa)
+      put(li_sel, grow(aa, SEL_ENC_AA))              # regla 4.2
+
+      cts = cut_array(aa, CT_SIZE, CT_S, AA_ENC_CT)  # regla 6.2b
+      put_all(li_cta, cts)
+
+      m1 = at_least(grow(bbox_of(cts), M1_ENC_CT), M1_W, M1_W)   # regla 7.3
+      put(li_m1, m1)
+
+      content = aa
+      if nwell?
+        # regla 2.4 (pozo encierra el tap) y regla 1.1 (ancho min. de pozo)
+        nw = at_least(grow(aa, NW_ENC_TAP), NW_W, NW_W)
+        put(li_nw, nw)
+        content = nw
+      end
+
+      put_text(li_m1t, label, m1.center.x, m1.center.y, 5.0)
+      put_die_outline(ly.layer(L_DIE), content, die_margin_um) if gen_die
+    end
+  end
+
+  # --------------------------------------------------------------------------
+  #  Anillo de guarda
+  #
+  #  El parametro gap_side/gap_len_um abre un hueco en un lado del anillo para
+  #  poder sacar el ruteo en M1 sin cortocircuitarlo contra el anillo.  Sin ese
+  #  hueco hay que cruzar el anillo en M2.
+  # --------------------------------------------------------------------------
+  class GuardRing &lt; PCellDeclarationHelper
+
+    include RBA
+    include Helpers
+
+    PSUB  = 0
+    NWELL = 1
+
+    def initialize
+      super
+      param(:ring_type, TypeInt, "Tipo de anillo", :default =&gt; PSUB,
+            :choices =&gt; [["Sustrato P (P+)", PSUB], ["Pozo N (N+)", NWELL]])
+      param(:outer_w_um, TypeDouble, "Ancho exterior (um)", :default =&gt; 200.0)
+      param(:outer_h_um, TypeDouble, "Alto exterior (um)",  :default =&gt; 200.0)
+      param(:ring_w_um,  TypeDouble, "Ancho del anillo (um)", :default =&gt; 10.0)
+      param(:gap_side, TypeInt, "Lado con hueco", :default =&gt; 0,
+            :choices =&gt; [["Sin hueco", 0], ["Abajo", 1], ["Arriba", 2],
+                         ["Izquierda", 3], ["Derecha", 4]])
+      param(:gap_len_um, TypeDouble, "Largo del hueco (um)", :default =&gt; 0.0)
+      param(:label, TypeString, "Etiqueta", :default =&gt; "GND")
+      param(:gen_die,       TypeBoolean, "Generar contorno Die.outline (100/0)", :default =&gt; false)
+      param(:die_margin_um, TypeDouble,  "Margen del contorno de die (um)", :default =&gt; 25.0)
+    end
+
+    def nwell?
+      ring_type == NWELL
+    end
+
+    def display_text_impl
+      format("Anillo %s %g x %g um (ancho %g um%s)",
+             nwell? ? "NWELL (N+)" : "PSUB (P+)",
+             outer_w_um, outer_h_um, ring_w_um,
+             gap_side &gt; 0 &amp;&amp; gap_len_um &gt; 0 ? format(", hueco %g um", gap_len_um) : "")
+    end
+
+    def coerce_parameters_impl
+      rmin = [AA_W, CT_SIZE + 2 * AA_ENC_CT].max
+      set_ring_w_um([g2_up(ring_w_um), g2_up(rmin)].max)
+
+      omin = g2_up(2 * ring_w_um + AA_S)
+      set_outer_w_um([g2_up(outer_w_um), omin].max)
+      set_outer_h_um([g2_up(outer_h_um), omin].max)
+
+      set_gap_len_um([g2(gap_len_um), 0.0].max)
+    end
+
+    # Devuelve los segmentos del anillo, abriendo el hueco pedido.
+    def segments(outer)
+      segs = ring_segments(outer, ring_w_um)
+      return segs if gap_side == 0 || gap_len_um &lt;= 0.0
+
+      idx = gap_side - 1                     # 0=abajo 1=arriba 2=izq 3=der
+      s   = segs[idx]
+      out = []
+      segs.each_with_index { |b, i| out &lt;&lt; b if i != idx }
+
+      if idx &lt; 2                             # lado horizontal: cortar en X
+        c  = s.center.x
+        lo = gsnap_dn(c - gap_len_um / 2.0)
+        hi = gsnap_up(c + gap_len_um / 2.0)
+        out &lt;&lt; dbox(s.left, s.bottom, lo, s.top)
+        out &lt;&lt; dbox(hi, s.bottom, s.right, s.top)
+      else                                   # lado vertical: cortar en Y
+        c  = s.center.y
+        lo = gsnap_dn(c - gap_len_um / 2.0)
+        hi = gsnap_up(c + gap_len_um / 2.0)
+        out &lt;&lt; dbox(s.left, s.bottom, s.right, lo)
+        out &lt;&lt; dbox(s.left, hi, s.right, s.top)
+      end
+
+      out.select { |b| b.width &gt; 1e-9 &amp;&amp; b.height &gt; 1e-9 }
+    end
+
+    def produce_impl
+      ly     = layout
+      li_aa  = ly.layer(L_AA)
+      li_sel = ly.layer(nwell? ? L_NSEL : L_PSEL)
+      li_cta = ly.layer(L_CTA)
+      li_m1  = ly.layer(L_M1)
+      li_m1t = ly.layer(L_M1T)
+      li_nw  = ly.layer(L_NW)
+
+      outer = dbox(0.0, 0.0, outer_w_um, outer_h_um)
+      segs  = segments(outer)
+
+      put_all(li_aa, segs)
+      put_all(li_m1, segs)                   # M1 alineado: encierra los contactos
+                                             # por AA_ENC_CT = M1_ENC_CT = 2.5
+
+      # Select: mismo anillo crecido SEL_ENC_AA hacia afuera y hacia adentro
+      put_all(li_sel, segs.map { |b| grow(b, SEL_ENC_AA) })
+
+      # Contactos: los segmentos NO se traslapan, asi que no se duplican
+      # contactos en las esquinas (regla 5.1 de area exacta).
+      cts = []
+      segs.each { |b| cts.concat(cut_array(b, CT_SIZE, CT_S, AA_ENC_CT)) }
+      put_all(li_cta, cts)
+
+      content = outer
+      if nwell?
+        nw = at_least(grow(outer, NW_ENC_TAP), NW_W, NW_W)   # regla 2.4
+        put(li_nw, nw)
+        content = nw
+      end
+
+      put_text(li_m1t, label, outer.center.x, outer.bottom + ring_w_um / 2.0, 5.0)
+      put_die_outline(ly.layer(L_DIE), content, die_margin_um) if gen_die
+    end
+  end
+
+  # --------------------------------------------------------------------------
+  #  Arreglo generico de cortes (contactos y vias)
+  # --------------------------------------------------------------------------
+  class CutArray &lt; PCellDeclarationHelper
+
+    include RBA
+    include Helpers
+
+    CT_ACTIVE = 0
+    CT_POLY   = 1
+    VIA1      = 2
+
+    def initialize
+      super
+      param(:kind, TypeInt, "Tipo de corte", :default =&gt; CT_ACTIVE,
+            :choices =&gt; [["Contacto a activo (48/0)", CT_ACTIVE],
+                         ["Contacto a poly (47/0)",   CT_POLY],
+                         ["Via1 (50/0)",              VIA1]])
+      param(:nx, TypeInt, "Cortes en X", :default =&gt; 2)
+      param(:ny, TypeInt, "Cortes en Y", :default =&gt; 2)
+      param(:sel_type, TypeInt, "Select (solo contacto a activo)", :default =&gt; 0,
+            :choices =&gt; [["Ninguno", 0], ["N+ (45/0)", 1], ["P+ (44/0)", 2]])
+      param(:draw_lower, TypeBoolean, "Dibujar capa inferior", :default =&gt; true)
+      param(:draw_upper, TypeBoolean, "Dibujar capa superior (M1/M2)", :default =&gt; true)
+    end
+
+    def cut_size
+      kind == VIA1 ? V1_SIZE : CT_SIZE
+    end
+
+    def cut_space
+      kind == VIA1 ? V1_S : CT_S
+    end
+
+    # Encierro requerido de la capa inferior sobre el corte
+    def enc_lo
+      case kind
+      when CT_ACTIVE then AA_ENC_CT      # 6.2b
+      when CT_POLY   then PL_ENC_CT      # 5.2b
+      else                M1_ENC_V1      # 8.3
+      end
+    end
+
+    # Encierro requerido de la capa superior sobre el corte
+    def enc_hi
+      kind == VIA1 ? M2_ENC_V1 : M1_ENC_CT   # 9.3 / 7.3
+    end
+
+    def min_lo
+      case kind
+      when CT_ACTIVE then AA_W
+      when CT_POLY   then PL_W
+      else                M1_W
+      end
+    end
+
+    def min_hi
+      kind == VIA1 ? M2_W : M1_W
+    end
+
+    def display_text_impl
+      n = ["CT activo", "CT poly", "Via1"][kind]
+      format("%s  %d x %d", n, nx, ny)
+    end
+
+    def coerce_parameters_impl
+      set_nx(1) if nx &lt; 1
+      set_ny(1) if ny &lt; 1
+    end
+
+    def produce_impl
+      ly = layout
+
+      li_lo = ly.layer(case kind
+                       when CT_ACTIVE then L_AA
+                       when CT_POLY   then L_PL
+                       else                L_M1
+                       end)
+      li_cut = ly.layer(case kind
+                        when CT_ACTIVE then L_CTA
+                        when CT_POLY   then L_CTP
+                        else                L_V1
+                        end)
+      li_hi = ly.layer(kind == VIA1 ? L_M2 : L_M1)
+
+      s  = cut_size
+      sp = cut_space
+
+      w_lo = span_for_cuts(nx, s, sp, enc_lo)
+      h_lo = span_for_cuts(ny, s, sp, enc_lo)
+      lo   = at_least(dbox(0.0, 0.0, w_lo, h_lo), min_lo, min_lo)
+
+      cuts = cut_array(lo, s, sp, enc_lo)
+      put_all(li_cut, cuts)
+
+      put(li_lo, lo) if draw_lower
+
+      if draw_upper
+        hi = at_least(grow(bbox_of(cuts), enc_hi), min_hi, min_hi)
+        put(li_hi, hi)
+      end
+
+      if kind == CT_ACTIVE &amp;&amp; sel_type &gt; 0
+        li_sel = ly.layer(sel_type == 1 ? L_NSEL : L_PSEL)
+        put(li_sel, grow(lo, SEL_ENC_AA))
+      end
+    end
+  end
+
+  # ==========================================================================
+  #  REGISTRO DE LA BIBLIOTECA
+  # ==========================================================================
+  class CM05PCellLibrary &lt; Library
+
+    def initialize
+      self.description = "CIDESI_CM05 - PCells de dispositivos (LNunT / CIDESI)"
+
+      # Ata la biblioteca a la tecnologia: asi solo aparece cuando CIDESI_CM05
+      # esta seleccionada.  Disponible desde KLayout 0.25.
+      begin
+        self.technology = "CIDESI_CM05"
+      rescue
+        # KLayout muy antiguo: la biblioteca queda visible en todas las tecnologias
+      end
+
+      layout.register_pcell("ResistorHiRes", ResistorHiRes::new)
+      layout.register_pcell("Mosfet",        Mosfet::new)
+      layout.register_pcell("CapacitorMIP",  CapacitorMIP::new)
+      layout.register_pcell("CapacitorMIM",  CapacitorMIM::new)
+      layout.register_pcell("BulkTap",       BulkTap::new)
+      layout.register_pcell("GuardRing",     GuardRing::new)
+      layout.register_pcell("CutArray",      CutArray::new)
+
+      register("CM05_PCells")
+    end
+  end
+
+  CM05PCellLibrary::new
+end
+</text>
+</klayout-macro>
