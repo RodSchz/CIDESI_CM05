@@ -1,0 +1,37 @@
+# ============================================================
+#  CIDESI_CM05 PDK — normalizacion de fin de linea
+#  El repositorio guarda SIEMPRE LF. Windows recibe CRLF
+#  en el working tree segun core.autocrlf de cada maquina.
+# ============================================================
+
+# Regla general: Git detecta texto y lo normaliza a LF en el repo
+* text=auto
+
+# ---------- Archivos KLayout (XML / Ruby) : texto ----------
+*.lyp    text
+*.lyt    text
+*.lym    text
+*.lylvs  text
+*.lydrc  text
+*.lyd25  text
+*.xs     text
+*.xml    text
+*.lib    text
+*.md     text
+*.html   text
+LICENSE  text
+
+# ---------- Binarios : Git NO los toca jamas ----------
+*.gds    binary
+*.gds.gz binary
+*.oas    binary
+*.oas.gz binary
+*.png    binary
+*.jpg    binary
+*.pdf    binary
+
+# ---------- Reportes generados por DRC/LVS ----------
+# Son XML, pero se regeneran en cada corrida.
+# Marcados para que no ensucien el diff si llegan a entrar.
+*.lyrdb  text -diff
+*.l2n    text -diff
