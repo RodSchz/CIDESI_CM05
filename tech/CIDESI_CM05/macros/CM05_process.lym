@@ -80,7 +80,25 @@ module CM05
     pmd_cmp:     0.00,   # CMP del PMD. Hoy no se hace.
     metal:       0.25,   # espesor de M1 y M2            (.xs m_t)
     imd:         1.50,   # dielectrico M1 -&gt; M2          (.xs imd_t)
-    imd_cmp:     0.80,   # CMP del IMD  (.xs planarize :less)   PROVISIONAL
+    # CMP del IMD. Es el argumento :less del planarize del .xs, y esta
+    # VALIDADO contra el corte transversal: el IMD que queda sobre M1
+    # mide 0.700 um exactos, que es 1.50 - 0.80.
+    #
+    # HISTORIA, porque casi nos cuesta caro:
+    # Las primeras mediciones daban 0.55 um y parecia que el deposito se
+    # quedaba corto 0.15 um. Era falso. El .xs no llamaba a height(), y
+    # XSection recorta la simulacion a 2 um sobre la oblea por omision.
+    # El apilamiento se cortaba en Y=+2.00: el IMD quedaba truncado, M2
+    # salia con 0.10 um de espesor en vez de 0.25, y la pasivacion no
+    # aparecia. El planarize referenciaba ese tope falso y dejaba 0.55.
+    #
+    # Con depth(3) y height(5) en el .xs todo cuadra: el deposito da sus
+    # 1.50, el planarize retira 0.80 y quedan 0.700.
+    #
+    # SI ALGUNA MEDICION DEL CORTE NO CUADRA, revisa primero que el .xs
+    # tenga height() suficiente. Un corte truncado no avisa: se ve
+    # normal y da numeros plausibles pero equivocados.
+    imd_cmp:     0.80,
     ovgl:        0.50,   # pasivacion                    (.xs ovgl_t)
     ovgl_cmp:    0.30,   # CMP de la pasivacion                PROVISIONAL
     nwell_depth: 2.00    # profundidad del pozo n        (.xs nw_de)
@@ -136,6 +154,17 @@ module CM05
   #   +pmd                -&gt; base de M1
   #   +metal              -&gt; tope de M1
   #   +imd_eff            -&gt; base de M2 (nivel planarizado)
+  #
+  #  VALIDADO contra el corte de XSection (capacitor01, 3-sep-2026),
+  #  midiendo el bounding box de cada capa en el GDS del corte:
+  #    espesor de M1              0.25   medido 0.250   OK
+  #    espesor de M2              0.25   medido 0.250   OK
+  #    PMD (LOCOS a base de M1)   0.20   medido 0.200   OK
+  #    IMD (tope M1 a base M2)    0.70   medido 0.700   OK
+  #    fondo LOCOS a base de M2   1.55   medido 1.550   OK
+  #
+  #  ATENCION: esta validacion solo es valida con el .xs corregido.
+  #  Ver la nota de imd_cmp mas abajo.
   def self.sep(key)
     case key
     when :m1_poly  then T[:pmd]                       # C_MIP
@@ -194,7 +223,9 @@ module CM05
     puts "   TOX: .xs dice #{T[:gox]*1000} nm; CIDNMOS dice 50.2 nm; CIDPMOS dice 25 nm."
     puts "        No se genera nada dependiente de TOX hasta decidir cual es."
     puts "   RSH: ndiff aqui #{RHO[:ndiff]}; el modelo CIDNMOS declara 34.1451."
-    puts "   CMP: imd_cmp e ovgl_cmp son provisionales; el proceso aun no los fija."
+    puts "   CMP: imd_cmp = #{T[:imd_cmp]} esta MEDIDO del corte, no es el 0.8 nominal"
+    puts "        del .xs; la diferencia de 0.15 um no esta explicada. ovgl_cmp"
+    puts "        sigue siendo provisional (no afecta ninguna capacitancia)."
     puts "=" * 68
     puts ""
   end

@@ -17,6 +17,9 @@ pmd_pl = 0.4     # Planarizado de idm
 ovgl_t = 0.50    # Pasivación 
 
 delta(5 * dbu)
+depth(3)     # profundidad de sustrato simulada
+height(5)    # ESPACIO SOBRE LA OBLEA - sin esto el default de 2 um
+             # recorta M2 y la pasivacion
 
 # ======== Máscaras desde layout ==================================================================
 lwn    = layer("42/0")   # Nwell
