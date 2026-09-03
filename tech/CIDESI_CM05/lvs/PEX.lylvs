@@ -154,9 +154,10 @@ term_poly = res_term + m1
 connect(term_poly, res_txt)
 connect(term_poly, ctp)
 
-# TODO corregir clases vacias de R_POLY para compatibilidad con LTSpice
+# Nombres de clase limpios. La sintaxis para LTspice la resuelve el
+# delegate de macros/CM05_LVS_common.lym (tc=TC1,TC2 como parametro).
 extract_devices(resistor("R_METAL1", rho_m1),    { "R" =&gt; body_m1,    "C" =&gt; res_term })
-extract_devices(resistor("TC1=1.5e-3",   rho_poly),  { "R" =&gt; body_poly,  "C" =&gt; term_poly })
+extract_devices(resistor("R_POLY",       rho_poly),  { "R" =&gt; body_poly,  "C" =&gt; term_poly })
 extract_devices(resistor("R_NDIFF",  rho_ndiff), { "R" =&gt; body_ndiff, "C" =&gt; res_term })
 extract_devices(resistor("R_PDIFF",  rho_pdiff), { "R" =&gt; body_pdiff, "C" =&gt; res_term })
 
@@ -184,10 +185,9 @@ extract_devices(capacitor("C_MIP", 5.0e-16), {
   "tB" =&gt; cap_tB
 })
 
-# TODO corregir clases vacias de C_MIM para compatibilidad con LTSpice
 # MiM: (M2 limpio ∧ M1 limpio)
 mim_body = cap_body &amp; m2_clean &amp; m1_clean
-extract_devices(capacitor(" ", 1.2e-16), {
+extract_devices(capacitor("C_MIM", 1.2e-16), {
   "P1" =&gt; (mim_body &amp; m2_clean),
   "P2" =&gt; (mim_body &amp; m1_clean),
   "tA" =&gt; cap_tA,
@@ -195,8 +195,11 @@ extract_devices(capacitor(" ", 1.2e-16), {
 })
 
 # Parasitic MiM
+# NOTA: sigue pendiente el hallazgo #3 (P1/P2 usan las capas completas
+# en vez de mim_body_PEX, lo que produce doble conteo con el MiM
+# intencional). Aqui solo se resuelve la colision de nombres.
 mim_body_PEX = (m2_clean &amp; m1_clean)-cap_body
-extract_devices(capacitor(" ", 1.2e-16), {
+extract_devices(capacitor("C_PAR_M1M2", 1.2e-16), {
   "P1" =&gt; (m2_clean),
   "P2" =&gt; (m1_clean),
 })
@@ -247,7 +250,7 @@ use_net_names = true
 with_comments = false
 
 target_netlist(out_path,
-               write_spice(use_net_names, with_comments),
+               CM05.ltspice_writer(use_net_names, with_comments),
                "Extracted by KLayout (CIDESI_CM05, LNunT, CIDESI)")
 </text>
 </klayout-macro>
