@@ -145,7 +145,7 @@ body_pdiff =  res_body &amp; active_in_nwell &amp; pplus
 
 # Resistencias de hoja: fuente unica en macros/CM05_process.lym
 rho_m1    = CM05::RHO[:m1]
-rho_poly  = CM05::RHO[:poly_hires]
+rho_poly  = CM05::RHO[:poly]
 rho_ndiff = CM05::RHO[:ndiff]
 rho_pdiff = CM05::RHO[:pdiff]
 
@@ -258,6 +258,18 @@ bajo_metal = active + poly + hres
 m1_campo   = m1_clean   - bajo_metal
 m2_campo   = m2_clean   - bajo_metal - m1        # M1 apantalla
 poly_campo = poly_clean - active                 # sobre activo es compuerta
+
+# HUECO CONOCIDO: poly_campo usa 46/0 y NO incluye HiRes (34/0), aunque
+# fisicamente HiRes es el mismo polisilicio y tiene la misma capacitancia
+# a sustrato. No se extrae porque el CUERPO del resistor esta a proposito
+# fuera de la conectividad (para que el dispositivo no salga
+# cortocircuitado), asi que un capacitor ahi no encontraria red y saldria
+# en nodos nc_*.
+# Magnitud de lo ignorado, en resistor01: 750 um2 de cuerpo son 64.7 fF,
+# y con R = 8333 ohm eso da R*C = 0.54 ns. No es despreciable.
+# El modelo correcto es una escalera RC distribuida, que KLayout no puede
+# construir; Magic si. Mientras tanto, tenerlo presente al simular
+# resistores de poly.
 
 extract_devices(capacitor("C_M1_SUB", CM05.cap(:m1_sub)), {
   "P1" =&gt; (m1_campo - nwell), "P2" =&gt; psub, "tA" =&gt; m1, "tB" =&gt; psub })

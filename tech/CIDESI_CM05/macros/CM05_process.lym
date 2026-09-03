@@ -45,7 +45,7 @@
 #    CM05.sep(:m1_m2)           separacion dielectrica efectiva, en um
 #    CM05.cap(:m1_m2)           densidad de capacitancia, en F/um2
 #    CM05::RHO[:m1]             resistencia de hoja, en ohm/cuadro
-#    CM05::TC[:poly_hires]      [TC1, TC2]
+#    CM05::TC[:poly]            [TC1, TC2]
 #    CM05.report                imprime la tabla completa derivada
 #
 # ============================================================================
@@ -110,12 +110,18 @@ module CM05
   # PENDIENTE: ndiff/pdiff contradicen el RSH de las tarjetas .model
   # (34.1 para CIDNMOS, 53.2 para CIDPMOS). Sin resolver.
   # --------------------------------------------------------------------------
+  # NOTA sobre el poly (confirmado 3-sep-2026): en este proceso hay UNA
+  # sola capa de polisilicio. HiRes (34/0) no es otro material: es una capa
+  # de marcado que distingue los resistores intencionales. El .xs ya lo
+  # trata asi (lpall = lpoly.or(lhres)). Por eso la clave es :poly y no
+  # :poly_hires, que sugeria un material aparte inexistente.
+  # Los 2500 ohm/cuadro son de ese mismo poly, poco dopado.
   RHO = {
-    m1:         0.05,
-    m2:         0.05,
-    poly_hires: 2500.0,
-    ndiff:      25.0,
-    pdiff:      30.0
+    m1:    0.05,
+    m2:    0.05,
+    poly:  2500.0,
+    ndiff: 25.0,
+    pdiff: 30.0
   }
 
   # --------------------------------------------------------------------------
@@ -123,11 +129,11 @@ module CM05
   # Los consume el delegate de escritura SPICE.
   # --------------------------------------------------------------------------
   TC = {
-    m1:         [1.0e-3, 0.0],
-    m2:         [1.0e-3, 0.0],
-    poly_hires: [1.5e-3, 0.0],
-    ndiff:      [1.0e-3, 0.0],
-    pdiff:      [1.2e-3, 0.0]
+    m1:    [1.0e-3, 0.0],
+    m2:    [1.0e-3, 0.0],
+    poly:  [1.5e-3, 0.0],
+    ndiff: [1.0e-3, 0.0],
+    pdiff: [1.2e-3, 0.0]
   }
 
   # ==========================================================================

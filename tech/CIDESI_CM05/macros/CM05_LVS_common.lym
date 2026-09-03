@@ -86,7 +86,7 @@ module CM05
   # aqui: se leen de CM05::TC, definido en CM05_process.lym.
   RES_MATERIAL = {
     "R_METAL1" =&gt; :m1,
-    "R_POLY"   =&gt; :poly_hires,
+    "R_POLY"   =&gt; :poly,
     "R_NDIFF"  =&gt; :ndiff,
     "R_PDIFF"  =&gt; :pdiff,
     "R_MPEX"   =&gt; :m1
