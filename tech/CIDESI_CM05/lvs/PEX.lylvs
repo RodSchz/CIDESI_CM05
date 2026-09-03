@@ -161,10 +161,21 @@ extract_devices(resistor("R_POLY",       rho_poly),  { "R" =&gt; body_poly,  "C"
 extract_devices(resistor("R_NDIFF",  rho_ndiff), { "R" =&gt; body_ndiff, "C" =&gt; res_term })
 extract_devices(resistor("R_PDIFF",  rho_pdiff), { "R" =&gt; body_pdiff, "C" =&gt; res_term })
 
-# Parasitic metal resistor
-rpex_term = via1
-rpex_body = m1 - via1
-extract_devices(resistor("R_MPEX", rho_m1),{ "R" =&gt; rpex_body, "C" =&gt; rpex_term })
+# ===========================================================
+#  R PARASITA DE INTERCONEXION: NO SE EXTRAE. Decision 3-sep-2026.
+# ===========================================================
+# Motivo electrico: una ruta de 200 x 10 um son 20 cuadros a 0.05 ohm/cuadro,
+# o sea 1 ohm, contra ~5.4 kohm de resistencia de encendido del NMOS. Aporta
+# el 0.02% de la impedancia del camino.
+#
+# Motivo tecnico: el extractor de KLayout exige EXACTAMENTE dos poligonos de
+# contacto por cuerpo de resistor. Con mas los descarta ("Expected two polygons
+# on contacts... resistor shape ignored"). Y aunque se particionara la
+# geometria en cuerpos de dos terminales, el resistor saldria cortocircuitado
+# mientras connect(m1, via1) siga activo: se verifico que los dos terminales
+# caen en la misma red.
+#
+# Si algun dia hace falta, va con Magic, que si tiene extraccion distribuida.
 
 # ===========================================================
 #        EXTRACCIÓN DE CAPACITORES (SOLO MIP y MiM)
@@ -194,15 +205,77 @@ extract_devices(capacitor("C_MIM", CM05.cap(:m1_m2)), {
   "tB" =&gt; cap_tB
 })
 
-# Parasitic MiM
-# NOTA: sigue pendiente el hallazgo #3 (P1/P2 usan las capas completas
-# en vez de mim_body_PEX, lo que produce doble conteo con el MiM
-# intencional). Aqui solo se resuelve la colision de nombres.
-mim_body_PEX = (m2_clean &amp; m1_clean)-cap_body
+# MiM parasito: todo traslape M1-M2 que NO sea un capacitor intencional
+# y que NO este cortocircuitado por una via.
+#
+# Restar cap_body evita contar dos veces el capacitor intencional.
+#
+# Restar via_corto evita los auto-lazos: donde aterriza una via, M1 y M2
+# son el mismo conductor, y un capacitor entre dos placas de la misma red
+# no tiene ningun efecto. Se verifico que netlist.purge y
+# netlist.combine_devices NO eliminan esos auto-lazos, asi que la unica
+# via es excluirlos por geometria. Si una via cae dentro de un traslape,
+# ese traslape completo esta cortocircuitado, de ahi el interacting.
+#
+# LIMITACION CONOCIDA: si M1 y M2 acaban en la misma red por una via
+# lejana, el traslape no toca ninguna via y si se extrae un auto-lazo.
+# Es inofensivo (efecto electrico nulo) pero ensucia el netlist. Lo mismo
+# pasa con las capacitancias a sustrato de un riel de GND, que quedan de
+# GND a GND. El extractor no conoce las redes cuando extrae dispositivos.
+#
+# Los terminales van a m1/m2 y no a las capas derivadas: m1_clean y
+# m2_clean no aparecen en ningun connect(), asi que un dispositivo colgado
+# de ellas queda flotando en nodos nc_*.
+via_corto    = (m1 &amp; m2).interacting(via1)
+mim_body_PEX = (m2_clean &amp; m1_clean) - cap_body - via_corto
 extract_devices(capacitor("C_PAR_M1M2", CM05.cap(:m1_m2)), {
-  "P1" =&gt; (m2_clean),
-  "P2" =&gt; (m1_clean),
+  "P1" =&gt; (mim_body_PEX &amp; m2_clean),
+  "P2" =&gt; (mim_body_PEX &amp; m1_clean),
+  "tA" =&gt; m2,
+  "tB" =&gt; m1
 })
+
+# ===========================================================
+#   CAPACITANCIA A SUSTRATO Y A POZO N
+# ===========================================================
+# Es el parasito dominante: m1_sub (5.755e-17 F/um2) es mayor que m1_m2
+# (4.933e-17) Y ademas aplica a TODA el area de metal, no solo a los cruces.
+#
+# Que se excluye y por que:
+#   - sobre ACTIVE  -> ahi hay union, no oxido de campo; lo modela el MOS
+#   - sobre POLY o HRES -> ese traslape ya es C_MIP
+#   - M2 sobre M1   -> M1 apantalla a M2 del silicio
+#
+# Se separa por lo que hay debajo, porque son nodos distintos:
+#   fuera de NWELL -> psub  (global GND)
+#   dentro de NWELL -> nwell (normalmente VDD via su tap)
+#
+# Los terminales van a las capas reales (m1, m2, poly, psub, nwell), todas
+# presentes en la conectividad. Ver la nota del MiM parasito.
+
+bajo_metal = active + poly + hres
+
+m1_campo   = m1_clean   - bajo_metal
+m2_campo   = m2_clean   - bajo_metal - m1        # M1 apantalla
+poly_campo = poly_clean - active                 # sobre activo es compuerta
+
+extract_devices(capacitor("C_M1_SUB", CM05.cap(:m1_sub)), {
+  "P1" =&gt; (m1_campo - nwell), "P2" =&gt; psub, "tA" =&gt; m1, "tB" =&gt; psub })
+
+extract_devices(capacitor("C_M1_NW", CM05.cap(:m1_sub)), {
+  "P1" =&gt; (m1_campo &amp; nwell), "P2" =&gt; nwell, "tA" =&gt; m1, "tB" =&gt; nwell })
+
+extract_devices(capacitor("C_M2_SUB", CM05.cap(:m2_sub)), {
+  "P1" =&gt; (m2_campo - nwell), "P2" =&gt; psub, "tA" =&gt; m2, "tB" =&gt; psub })
+
+extract_devices(capacitor("C_M2_NW", CM05.cap(:m2_sub)), {
+  "P1" =&gt; (m2_campo &amp; nwell), "P2" =&gt; nwell, "tA" =&gt; m2, "tB" =&gt; nwell })
+
+extract_devices(capacitor("C_PO_SUB", CM05.cap(:poly_sub)), {
+  "P1" =&gt; (poly_campo - nwell), "P2" =&gt; psub, "tA" =&gt; poly, "tB" =&gt; psub })
+
+extract_devices(capacitor("C_PO_NW", CM05.cap(:poly_sub)), {
+  "P1" =&gt; (poly_campo &amp; nwell), "P2" =&gt; nwell, "tA" =&gt; poly, "tB" =&gt; nwell })
 
 
 # ===========================================================
@@ -243,8 +316,14 @@ out_path  = $out_spice || "#{base_name}_PEX.cir"
 # ====================================================
 netlist.make_top_level_pins
 # netlist.simplify           # útil desactivado al depurar
-netlist.purge
-netlist.purge_nets
+
+# purge / purge_nets DESACTIVADOS EN PEX a proposito: eliminan dispositivos
+# que consideran sin efecto, y en un flujo de parasitos eso puede borrar
+# capacitores legitimos con un terminal en un nodo que quedo flotante.
+# En EXT y LVS si estan activos. Si el netlist sale con demasiado ruido,
+# reactivarlos y comparar cuantos dispositivos se pierden.
+# netlist.purge
+# netlist.purge_nets
 
 use_net_names = true
 with_comments = false
