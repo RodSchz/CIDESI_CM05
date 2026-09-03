@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<klayout-macro>
+ <description>Codigo comun de extraccion para CIDESI_CM05 (escritor SPICE LTspice)</description>
+ <version>0.1</version>
+ <category/>
+ <prolog/>
+ <epilog/>
+ <doc/>
+ <autorun>true</autorun>
+ <autorun-early>false</autorun-early>
+ <priority>0</priority>
+ <shortcut/>
+ <show-in-menu>false</show-in-menu>
+ <group-name>LNunT</group-name>
+ <menu-path/>
+ <interpreter>ruby</interpreter>
+ <dsl-interpreter-name/>
+ <text># ============================================================================
+#  CIDESI_CM05 - Codigo comun para los scripts EXT / LVS / PEX
+#  Escritor SPICE compatible con LTspice
+#  LNunT / CIDESI
+# ============================================================================
+#
+#  PROBLEMA QUE RESUELVE
+#  ---------------------
+#  El escritor SPICE de KLayout emite el nombre de la clase de dispositivo
+#  inmediatamente despues del valor:
+#
+#      R$1 T1 T2 8333.33333333 R_POLY
+#
+#  LTspice interpreta todo lo que sigue al valor como parametros de
+#  instancia (clave=valor) y falla con:
+#
+#      Error on line NN : r$1 t1 t2 8333.33333333 r_poly
+#           Unknown parameter "r_poly"
+#
+#  Verificado el 2026-09-02 con LTspice 26.0.1. El mismo error ocurre con
+#  un .model minimo definido en el propio archivo, asi que NO es culpa de
+#  CM05_models.lib: LTspice simplemente no admite nombre de modelo en la
+#  linea de instancia de R o C.
+#
+#  LO QUE HACE ESTE DELEGATE
+#  -------------------------
+#  Mantiene los nombres de clase limpios hacia adentro -- que es lo que usa
+#  el LVS para emparejar dispositivos contra el esquematico -- y hacia
+#  afuera emite sintaxis que LTspice si acepta:
+#
+#      R$1 T1 T2 8333.33333333 tc=1.5e-3,0 ; R_POLY
+#
+#  El nombre de la clase sobrevive como comentario ";" (que LTspice ignora)
+#  para que el netlist siga siendo legible y depurable.
+#
+#  Los transistores no se tocan: caen al comportamiento por omision, que
+#  ya emite sintaxis valida.
+#
+#  USO DESDE UN SCRIPT .lylvs
+#  --------------------------
+#      target_netlist(out_path,
+#                     CM05.ltspice_writer(true, false),
+#                     "Extracted by KLayout (CIDESI_CM05, LNunT, CIDESI)")
+#
+#  en lugar de:
+#
+#      target_netlist(out_path, write_spice(true, false), "...")
+#
+# ============================================================================
+
+module CM05
+
+  # --------------------------------------------------------------------------
+  # Coeficientes de temperatura por clase de dispositivo.
+  #
+  # FUENTE UNICA DE VERDAD para el flujo de LTspice. Deben mantenerse
+  # coherentes con las tarjetas .model de models/CM05_models.lib, que en
+  # este flujo NO son alcanzables (ver nota arriba) y quedan como
+  # referencia para ngspice / Magic.
+  #
+  # Formato: "CLASE" =&gt; [TC1, TC2]
+  # --------------------------------------------------------------------------
+  # Permite re-ejecutar el macro desde el Macro IDE sin que Ruby
+  # advierta por redefinir constantes, y tomando los valores nuevos.
+  send(:remove_const, :RES_TC)   if const_defined?(:RES_TC,   false)
+  send(:remove_const, :ANNOTATE) if const_defined?(:ANNOTATE, false)
+
+  RES_TC = {
+    "R_METAL1" =&gt; [1.0e-3, 0.0],
+    "R_POLY"   =&gt; [1.5e-3, 0.0],
+    "R_NDIFF"  =&gt; [1.0e-3, 0.0],
+    "R_PDIFF"  =&gt; [1.2e-3, 0.0],
+    "R_MPEX"   =&gt; [1.0e-3, 0.0]
+  }
+
+  # LTspice no admite tc1/tc2 en capacitores. Las tarjetas .model C_MIP y
+  # C_MIM no tienen forma de aplicarse aqui; los capacitores se emiten
+  # con su valor absoluto y nada mas.
+
+  # Si es true, agrega " ; NOMBRE_DE_CLASE" al final de cada linea.
+  ANNOTATE = true
+
+  # --------------------------------------------------------------------------
+  class LTspiceWriterDelegate &lt; RBA::NetlistSpiceWriterDelegate
+
+    def write_device(dev)
+
+      cls  = dev.device_class
+      name = cls.name.to_s
+
+      begin
+
+        if cls.is_a?(RBA::DeviceClassResistor)
+          a = net_to_string(dev.net_for_terminal(RBA::DeviceClassResistor::TERMINAL_A))
+          b = net_to_string(dev.net_for_terminal(RBA::DeviceClassResistor::TERMINAL_B))
+          line = "R" + format_name(dev.expanded_name) + " " + a + " " + b +
+                 " " + fmt(dev.parameter("R"))
+          tc = RES_TC[name]
+          line = line + " tc=" + fmt(tc[0]) + "," + fmt(tc[1]) if tc
+          line = line + " ; " + name if ANNOTATE &amp;&amp; !name.strip.empty?
+          emit_line(line)
+          return
+        end
+
+        if cls.is_a?(RBA::DeviceClassCapacitor)
+          a = net_to_string(dev.net_for_terminal(RBA::DeviceClassCapacitor::TERMINAL_A))
+          b = net_to_string(dev.net_for_terminal(RBA::DeviceClassCapacitor::TERMINAL_B))
+          line = "C" + format_name(dev.expanded_name) + " " + a + " " + b +
+                 " " + fmt(dev.parameter("C"))
+          line = line + " ; " + name if ANNOTATE &amp;&amp; !name.strip.empty?
+          emit_line(line)
+          return
+        end
+
+      rescue =&gt; e
+        # Si algo falla, no se pierde el dispositivo: se anota y se cae
+        # al escritor por omision.
+        emit_comment("CM05 delegate: fallo al escribir clase '" + name + "': " + e.to_s)
+      end
+
+      # MOS4, MOS3 y cualquier otra clase: comportamiento por omision.
+      super
+
+    end
+
+    private
+
+    def fmt(v)
+      "%.12g" % v
+    end
+
+  end
+  # --------------------------------------------------------------------------
+
+  # Construye el escritor listo para pasarselo a target_netlist.
+  def self.ltspice_writer(use_net_names = true, with_comments = false)
+    w = RBA::NetlistSpiceWriter::new(LTspiceWriterDelegate::new)
+    w.use_net_names = use_net_names
+    w.with_comments = with_comments
+    w
+  end
+
+end
+
+puts "CM05: escritor SPICE para LTspice cargado (CM05.ltspice_writer)"
+</text>
+</klayout-macro>

@@ -60,14 +60,26 @@
 ****************************************************
 * RESISTORES (modelo RES)
 * - R se define en la instancia
-* - TC1/TC2 aportan dependencia térmica
+* - TC1/TC2 aportan dependencia termica
+*
+* NOTA (2026-09-02): LTspice NO admite un nombre de
+* modelo en la linea de instancia de R o C:
+*     R1 n1 n2 8333.33 R_POLY  -> Unknown parameter
+* Por eso estas tarjetas NO son alcanzables desde el
+* flujo KLayout -> LTspice. El coeficiente de
+* temperatura se inyecta como parametro de instancia
+* (tc=TC1,TC2) desde macros/CM05_LVS_common.lym, que
+* es la fuente unica de verdad para ese flujo.
+* Estas tarjetas se conservan como referencia y para
+* uso futuro con ngspice o Magic; se quitaron NOISE,
+* KF y AF por portabilidad.
 ****************************************************
 
 * Metal1: TC típico 800–1500 ppm/°C (ajusta tras medir)
-.model R_METAL1 RES (TC1=1.0e-3  TC2=0  TNOM=27 NOISE=1  KF=1e-24  AF=1.0)
+.model R_METAL1 RES (TC1=1.0e-3  TC2=0  TNOM=27)
 
 * Polysilicio alto-ohmiaje (HRES): mayor TC1 (ajusta tras medir)
-.model R_POLY RES (TC1=1.5e-3  TC2=0  TNOM=27 NOISE=1  KF=1e-22  AF=1.0)
+.model R_POLY RES (TC1=1.5e-3  TC2=0  TNOM=27)
 
 * Difusiones (orientativos)
 .model R_NDIFF RES (TC1=1.0e-3  TC2=0  TNOM=27)
