@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8"?>
+<klayout-macro>
+ <description>CIDESI_CM05 - Parametros de proceso (fuente unica de verdad)</description>
+ <version>0.1</version>
+ <category/>
+ <prolog/>
+ <epilog/>
+ <doc/>
+ <autorun>false</autorun>
+ <autorun-early>true</autorun-early>
+ <priority>0</priority>
+ <shortcut/>
+ <show-in-menu>false</show-in-menu>
+ <group-name>LNunT</group-name>
+ <menu-path/>
+ <interpreter>ruby</interpreter>
+ <dsl-interpreter-name/>
+ <text># ============================================================================
+#  CIDESI_CM05 - PARAMETROS DE PROCESO
+#  Fuente unica de verdad. LNunT / CIDESI
+# ============================================================================
+#
+#  POR QUE EXISTE ESTE ARCHIVO
+#  ---------------------------
+#  Los mismos numeros fisicos vivian en cuatro lugares distintos:
+#  el .xs, los tres scripts de LVS, CM05_models.lib y el delegate.
+#  El resultado fueron tres contradicciones reales:
+#
+#    TOX      .xs dice 20 nm / su comentario dice 50 nm /
+#             modelo NMOS 50.2 nm / modelo PMOS 25 nm
+#    RSH      scripts 25 ohm/sq (ndiff) / modelo CIDNMOS 34.1
+#    Cap      scripts 5.0e-16 y 1.2e-16 F/um2, incompatibles con
+#             los espesores declarados en el .xs
+#
+#  Aqui los espesores se declaran UNA vez y las densidades de
+#  capacitancia se CALCULAN de ellos. Una contradiccion de ese tipo
+#  deja de ser posible de expresar.
+#
+#  Los valores actuales son los del .xs de v0.8 y son PRELIMINARES:
+#  cambiaran cuando se optimice el proceso. Ese es justamente el punto.
+#
+#  USO
+#  ---
+#    CM05::T[:imd]              espesor nominal del IMD, en um
+#    CM05.sep(:m1_m2)           separacion dielectrica efectiva, en um
+#    CM05.cap(:m1_m2)           densidad de capacitancia, en F/um2
+#    CM05::RHO[:m1]             resistencia de hoja, en ohm/cuadro
+#    CM05::TC[:poly_hires]      [TC1, TC2]
+#    CM05.report                imprime la tabla completa derivada
+#
+# ============================================================================
+
+module CM05
+
+  # Identifica el conjunto de parametros con el que se hizo una extraccion.
+  # Subelo cuando cambien los espesores, para poder reproducir resultados
+  # viejos aunque el proceso ya haya cambiado.
+  PROCESS_VERSION = "v0.8-preliminar"
+
+  # --------------------------------------------------------------------------
+  # Constantes fisicas
+  # --------------------------------------------------------------------------
+  EPS0   = 8.854187817e-12   # F/m
+  EPS_OX = 3.9               # SiO2, permitividad relativa
+
+  # --------------------------------------------------------------------------
+  # Espesores, en micrometros. Espejo del bloque de parametros del .xs.
+  #
+  # OJO: en el .xs la variable pmd_pl = 0.4 esta declarada como
+  # "Planarizado de idm" pero NUNCA se usa; el planarizado real esta
+  # escrito como literal dentro de planarize(:less =&gt; 0.8). Aqui la
+  # variable si manda.
+  # --------------------------------------------------------------------------
+  T = {
+    gox:         0.02,   # oxido de compuerta            (.xs gox_t)
+    fox_up:      0.20,   # LOCOS crecido hacia arriba    (.xs fox_u)
+    fox_in:      0.20,   # LOCOS crecido hacia adentro   (.xs fox_i)
+    poly:        0.25,   # polisilicio                   (.xs pol_t)
+    pmd:         0.20,   # dielectrico poly -&gt; M1        (.xs pmd_t)
+    pmd_cmp:     0.00,   # CMP del PMD. Hoy no se hace.
+    metal:       0.25,   # espesor de M1 y M2            (.xs m_t)
+    imd:         1.50,   # dielectrico M1 -&gt; M2          (.xs imd_t)
+    imd_cmp:     0.80,   # CMP del IMD  (.xs planarize :less)   PROVISIONAL
+    ovgl:        0.50,   # pasivacion                    (.xs ovgl_t)
+    ovgl_cmp:    0.30,   # CMP de la pasivacion                PROVISIONAL
+    nwell_depth: 2.00    # profundidad del pozo n        (.xs nw_de)
+  }
+
+  # --------------------------------------------------------------------------
+  # Resistencias de hoja, en ohm por cuadro.
+  #
+  # PENDIENTE: ndiff/pdiff contradicen el RSH de las tarjetas .model
+  # (34.1 para CIDNMOS, 53.2 para CIDPMOS). Sin resolver.
+  # --------------------------------------------------------------------------
+  RHO = {
+    m1:         0.05,
+    m2:         0.05,
+    poly_hires: 2500.0,
+    ndiff:      25.0,
+    pdiff:      30.0
+  }
+
+  # --------------------------------------------------------------------------
+  # Coeficientes de temperatura [TC1, TC2].
+  # Los consume el delegate de escritura SPICE.
+  # --------------------------------------------------------------------------
+  TC = {
+    m1:         [1.0e-3, 0.0],
+    m2:         [1.0e-3, 0.0],
+    poly_hires: [1.5e-3, 0.0],
+    ndiff:      [1.0e-3, 0.0],
+    pdiff:      [1.2e-3, 0.0]
+  }
+
+  # ==========================================================================
+  #  DERIVADOS
+  # ==========================================================================
+
+  # Espesor total del oxido de campo (LOCOS crece hacia arriba y hacia
+  # adentro del silicio; el dielectrico total entre el conductor de arriba
+  # y el silicio conductor de abajo es la suma de ambos).
+  def self.fox_total
+    T[:fox_up] + T[:fox_in]
+  end
+
+  # Espesor efectivo del IMD sobre M1, despues del CMP.
+  def self.imd_eff
+    T[:imd] - T[:imd_cmp]
+  end
+
+  # Separacion dielectrica entre dos conductores, en um.
+  #
+  # Alturas sobre la superficie del silicio, en zona de campo:
+  #   0.00  silicio
+  #   +fox_total          -&gt; superficie del LOCOS
+  #   +pmd                -&gt; base de M1
+  #   +metal              -&gt; tope de M1
+  #   +imd_eff            -&gt; base de M2 (nivel planarizado)
+  def self.sep(key)
+    case key
+    when :m1_poly  then T[:pmd]                       # C_MIP
+    when :m1_m2    then imd_eff                       # C_MIM y C_PAR_M1M2
+    when :m1_sub   then fox_total + T[:pmd]           # M1 sobre campo
+    when :m2_sub   then fox_total + T[:pmd] + T[:metal] + imd_eff
+    when :poly_sub then fox_total                     # poly sobre campo
+    when :m2_poly  then T[:pmd] + T[:metal] + imd_eff
+    else raise "CM05.sep: separacion desconocida: #{key}"
+    end
+  end
+
+  # Densidad de capacitancia de placas paralelas, en F/um2.
+  #   C = eps0 * eps_r / d      con d en metros
+  #   se divide entre 1e12 para pasar de F/m2 a F/um2
+  def self.cap_density(d_um)
+    raise "CM05.cap_density: espesor no positivo" if d_um &lt;= 0.0
+    EPS0 * EPS_OX / (d_um * 1.0e-6) / 1.0e12
+  end
+
+  def self.cap(key)
+    cap_density(sep(key))
+  end
+
+  # ==========================================================================
+  #  REPORTE
+  # ==========================================================================
+  def self.report
+    puts ""
+    puts "=" * 68
+    puts " CIDESI_CM05 - parametros de proceso  [#{PROCESS_VERSION}]"
+    puts "=" * 68
+    puts ""
+    puts " Espesores (um)"
+    T.keys.sort_by { |k| k.to_s }.each do |k|
+      puts format("   %-14s %8.3f", k, T[k])
+    end
+    puts ""
+    puts format("   %-14s %8.3f   (fox_up + fox_in)", "fox_total", fox_total)
+    puts format("   %-14s %8.3f   (imd - imd_cmp)",   "imd_eff",   imd_eff)
+    puts ""
+    puts " Separaciones dielectricas y densidades de capacitancia"
+    puts format("   %-12s %10s %16s", "par", "d [um]", "C [F/um2]")
+    [:m1_poly, :m1_m2, :m1_sub, :m2_sub, :poly_sub, :m2_poly].each do |k|
+      puts format("   %-12s %10.3f %16.3e", k, sep(k), cap(k))
+    end
+    puts ""
+    puts " Resistencias de hoja (ohm/cuadro) y coef. termicos"
+    RHO.keys.each do |k|
+      tc = TC[k]
+      tcs = tc ? format("tc=%.1e,%.1e", tc[0], tc[1]) : "-"
+      puts format("   %-12s %10.2f   %s", k, RHO[k], tcs)
+    end
+    puts ""
+    puts " SIN RESOLVER"
+    puts "   TOX: .xs dice #{T[:gox]*1000} nm; CIDNMOS dice 50.2 nm; CIDPMOS dice 25 nm."
+    puts "        No se genera nada dependiente de TOX hasta decidir cual es."
+    puts "   RSH: ndiff aqui #{RHO[:ndiff]}; el modelo CIDNMOS declara 34.1451."
+    puts "   CMP: imd_cmp e ovgl_cmp son provisionales; el proceso aun no los fija."
+    puts "=" * 68
+    puts ""
+  end
+
+end
+
+puts "CM05: parametros de proceso cargados [#{CM05::PROCESS_VERSION}] - CM05.report para ver la tabla"
+</text>
+</klayout-macro>

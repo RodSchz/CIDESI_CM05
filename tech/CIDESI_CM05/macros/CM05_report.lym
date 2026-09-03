@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<klayout-macro>
+ <description>CM05: imprime los parametros de proceso derivados</description>
+ <version>0.1</version>
+ <category/>
+ <prolog/>
+ <epilog/>
+ <doc/>
+ <autorun>false</autorun>
+ <autorun-early>false</autorun-early>
+ <priority>0</priority>
+ <shortcut/>
+ <show-in-menu>true</show-in-menu>
+ <group-name>LNunT</group-name>
+ <menu-path>tools_menu.end</menu-path>
+ <interpreter>ruby</interpreter>
+ <dsl-interpreter-name/>
+ <text># Imprime la tabla de parametros de proceso derivados de CM05_process.lym.
+# Correr desde el Macro IDE (la salida aparece en el panel inferior) o
+# desde el menu Tools.
+
+if defined?(CM05) &amp;&amp; CM05.respond_to?(:report)
+  CM05.report
+else
+  puts "ERROR: CM05_process.lym no esta cargado."
+  puts "       Es un macro autorun-early: reinicia KLayout, o abre"
+  puts "       CM05_process.lym en el Macro IDE y dale Run primero."
+end
+</text>
+</klayout-macro>

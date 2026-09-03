@@ -79,15 +79,17 @@ module CM05
   # --------------------------------------------------------------------------
   # Permite re-ejecutar el macro desde el Macro IDE sin que Ruby
   # advierta por redefinir constantes, y tomando los valores nuevos.
-  send(:remove_const, :RES_TC)   if const_defined?(:RES_TC,   false)
-  send(:remove_const, :ANNOTATE) if const_defined?(:ANNOTATE, false)
+  send(:remove_const, :RES_MATERIAL) if const_defined?(:RES_MATERIAL, false)
+  send(:remove_const, :ANNOTATE)     if const_defined?(:ANNOTATE, false)
 
-  RES_TC = {
-    "R_METAL1" =&gt; [1.0e-3, 0.0],
-    "R_POLY"   =&gt; [1.5e-3, 0.0],
-    "R_NDIFF"  =&gt; [1.0e-3, 0.0],
-    "R_PDIFF"  =&gt; [1.2e-3, 0.0],
-    "R_MPEX"   =&gt; [1.0e-3, 0.0]
+  # Clase de dispositivo -&gt; material. Los coeficientes NO se repiten
+  # aqui: se leen de CM05::TC, definido en CM05_process.lym.
+  RES_MATERIAL = {
+    "R_METAL1" =&gt; :m1,
+    "R_POLY"   =&gt; :poly_hires,
+    "R_NDIFF"  =&gt; :ndiff,
+    "R_PDIFF"  =&gt; :pdiff,
+    "R_MPEX"   =&gt; :m1
   }
 
   # LTspice no admite tc1/tc2 en capacitores. Las tarjetas .model C_MIP y
@@ -112,7 +114,8 @@ module CM05
           b = net_to_string(dev.net_for_terminal(RBA::DeviceClassResistor::TERMINAL_B))
           line = "R" + format_name(dev.expanded_name) + " " + a + " " + b +
                  " " + fmt(dev.parameter("R"))
-          tc = RES_TC[name]
+          mat = RES_MATERIAL[name]
+          tc  = mat ? TC[mat] : nil
           line = line + " tc=" + fmt(tc[0]) + "," + fmt(tc[1]) if tc
           line = line + " ; " + name if ANNOTATE &amp;&amp; !name.strip.empty?
           emit_line(line)
@@ -151,6 +154,9 @@ module CM05
 
   # Construye el escritor listo para pasarselo a target_netlist.
   def self.ltspice_writer(use_net_names = true, with_comments = false)
+    unless const_defined?(:TC, false) &amp;&amp; const_defined?(:RHO, false)
+      raise "CM05: falta cargar CM05_process.lym (macro autorun-early). Reinicia KLayout."
+    end
     w = RBA::NetlistSpiceWriter::new(LTspiceWriterDelegate::new)
     w.use_net_names = use_net_names
     w.with_comments = with_comments
