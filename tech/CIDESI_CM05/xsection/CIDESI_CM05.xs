@@ -4,7 +4,9 @@
 # =================================================================================================
 
 # --- Parámetros (puedes ajustarlos) ---
-gox_t  = 0.02    # 50 nm gate oxide
+gox_t  = 0.0294  # 29.4 nm, TCAD CM05v3 (30 nm nominal). Manual de
+                 # referencia v1, Tabla 1. El comentario anterior decia
+                 # 50 nm y nunca correspondio a este valor.
 fox_u  = 0.20    # LOCOS "up" (altura)
 fox_i  = 0.20    # LOCOS "in" (hacia adentro)
 pmd_t  = 0.20    # dieléctrico antes de M1

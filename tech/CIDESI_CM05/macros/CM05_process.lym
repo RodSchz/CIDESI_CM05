@@ -28,7 +28,9 @@
 #
 #    TOX      .xs dice 20 nm / su comentario dice 50 nm /
 #             modelo NMOS 50.2 nm / modelo PMOS 25 nm
+#             RESUELTO (nov-2026): 29.4 nm en ambos, por TCAD CM05v3.
 #    RSH      scripts 25 ohm/sq (ndiff) / modelo CIDNMOS 34.1
+#             RESUELTO (nov-2026): 90 y 208 ohm/sq, por TCAD.
 #    Cap      scripts 5.0e-16 y 1.2e-16 F/um2, incompatibles con
 #             los espesores declarados en el .xs
 #
@@ -55,7 +57,7 @@ module CM05
   # Identifica el conjunto de parametros con el que se hizo una extraccion.
   # Subelo cuando cambien los espesores, para poder reproducir resultados
   # viejos aunque el proceso ya haya cambiado.
-  PROCESS_VERSION = "v0.8-preliminar"
+  PROCESS_VERSION = "v0.9-preliminar"
 
   # --------------------------------------------------------------------------
   # Constantes fisicas
@@ -72,7 +74,10 @@ module CM05
   # variable si manda.
   # --------------------------------------------------------------------------
   T = {
-    gox:         0.02,   # oxido de compuerta            (.xs gox_t)
+    gox:         0.0294, # oxido de compuerta            (.xs gox_t)
+                         # 29.4 nm por TCAD CM05v3; 30 nm nominal.
+                         # No entra en ninguna densidad de capacitancia
+                         # de interconexion: es solo espejo del .xs.
     fox_up:      0.20,   # LOCOS crecido hacia arriba    (.xs fox_u)
     fox_in:      0.20,   # LOCOS crecido hacia adentro   (.xs fox_i)
     poly:        0.25,   # polisilicio                   (.xs pol_t)
@@ -107,8 +112,17 @@ module CM05
   # --------------------------------------------------------------------------
   # Resistencias de hoja, en ohm por cuadro.
   #
-  # PENDIENTE: ndiff/pdiff contradicen el RSH de las tarjetas .model
-  # (34.1 para CIDNMOS, 53.2 para CIDPMOS). Sin resolver.
+  # RESUELTO (nov-2026): los valores vienen del Manual de referencia
+  # CIDESI_CM05 v1, Tabla 1, que los toma de la corrida TCAD CM05v3 y
+  # coinciden con el RSH de las tarjetas .model de la revision 3:
+  #   N+ 90 ohm/sq (NM05 midio 53.5), P+ 208, pozo N 880.
+  # Metal 1 pasa de 0.05 a 0.11: el 0.05 es el de Metal 2, y estaba
+  # repetido en los dos por error.
+  #
+  # PENDIENTE: el pozo N (880 ohm/sq) no tiene clave aqui porque hoy
+  # ningun script lo usa. Agregarla cuando se extraiga resistencia de
+  # pozo. Todos estos valores son TCAD y deben confirmarse con la
+  # medicion de cuatro puntas del primer lote.
   # --------------------------------------------------------------------------
   # NOTA sobre el poly (confirmado 3-sep-2026): en este proceso hay UNA
   # sola capa de polisilicio. HiRes (34/0) no es otro material: es una capa
@@ -117,11 +131,11 @@ module CM05
   # :poly_hires, que sugeria un material aparte inexistente.
   # Los 2500 ohm/cuadro son de ese mismo poly, poco dopado.
   RHO = {
-    m1:    0.05,
+    m1:    0.11,
     m2:    0.05,
     poly:  2500.0,
-    ndiff: 25.0,
-    pdiff: 30.0
+    ndiff: 90.0,
+    pdiff: 208.0
   }
 
   # --------------------------------------------------------------------------
@@ -225,13 +239,17 @@ module CM05
       puts format("   %-12s %10.2f   %s", k, RHO[k], tcs)
     end
     puts ""
+    puts " RESUELTO (nov-2026, TCAD CM05v3 + Manual de referencia v1)"
+    puts format("   TOX: %.1f nm en ambos transistores.", T[:gox]*1000)
+    puts format("   RSH: ndiff %.0f, pdiff %.0f ohm/cuadro.", RHO[:ndiff], RHO[:pdiff])
+    puts ""
     puts " SIN RESOLVER"
-    puts "   TOX: .xs dice #{T[:gox]*1000} nm; CIDNMOS dice 50.2 nm; CIDPMOS dice 25 nm."
-    puts "        No se genera nada dependiente de TOX hasta decidir cual es."
-    puts "   RSH: ndiff aqui #{RHO[:ndiff]}; el modelo CIDNMOS declara 34.1451."
-    puts "   CMP: imd_cmp = #{T[:imd_cmp]} esta MEDIDO del corte, no es el 0.8 nominal"
-    puts "        del .xs; la diferencia de 0.15 um no esta explicada. ovgl_cmp"
-    puts "        sigue siendo provisional (no afecta ninguna capacitancia)."
+    puts "   Apilamiento: el manual da t_fox+PMD = 0.86 um y un oxido de tapa"
+    puts "        sobre la compuerta que aqui no existe, asi que m1_poly,"
+    puts "        m1_sub y poly_sub salen mas altas de lo que el proceso dice."
+    puts "   CMP: el manual dice que el proceso NO tiene planarizacion, pero"
+    puts format("        aqui imd_cmp = %.2f. Revisar junto con el apilamiento.", T[:imd_cmp])
+    puts "   Pozo N: 880 ohm/cuadro sin clave en RHO; ningun script lo usa aun."
     puts "=" * 68
     puts ""
   end
