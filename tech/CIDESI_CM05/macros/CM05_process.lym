@@ -57,7 +57,7 @@ module CM05
   # Identifica el conjunto de parametros con el que se hizo una extraccion.
   # Subelo cuando cambien los espesores, para poder reproducir resultados
   # viejos aunque el proceso ya haya cambiado.
-  PROCESS_VERSION = "v0.9-preliminar"
+  PROCESS_VERSION = "v1.0-manual-ref"
 
   # --------------------------------------------------------------------------
   # Constantes fisicas
@@ -66,21 +66,41 @@ module CM05
   EPS_OX = 3.9               # SiO2, permitividad relativa
 
   # --------------------------------------------------------------------------
-  # Espesores, en micrometros. Espejo del bloque de parametros del .xs.
+  # Espesores, en micrometros.
   #
-  # OJO: en el .xs la variable pmd_pl = 0.4 esta declarada como
-  # "Planarizado de idm" pero NUNCA se usa; el planarizado real esta
-  # escrito como literal dentro de planarize(:less =&gt; 0.8). Aqui la
-  # variable si manda.
+  # Casi todas son espejo del bloque de parametros del .xs. La excepcion
+  # son cap_dep / cap_n / cap_p: el oxido de tapa existe en el proceso y
+  # entra en las capacitancias, pero el .xs todavia NO lo dibuja, asi que
+  # el corte transversal no lo muestra. Agregarlo es trabajo aparte.
+  #
+  # Resuelto: en el .xs la variable del planarizado estaba declarada como
+  # pmd_pl = 0.4, no se usaba nunca, y el planarizado real iba escrito
+  # como literal dentro de planarize(:less =&gt; 0.8). Ahora se llama
+  # imd_pl, vale 0.0 y el planarize solo corre si es mayor que cero.
   # --------------------------------------------------------------------------
   T = {
     gox:         0.0294, # oxido de compuerta            (.xs gox_t)
                          # 29.4 nm por TCAD CM05v3; 30 nm nominal.
                          # No entra en ninguna densidad de capacitancia
                          # de interconexion: es solo espejo del .xs.
-    fox_up:      0.20,   # LOCOS crecido hacia arriba    (.xs fox_u)
-    fox_in:      0.20,   # LOCOS crecido hacia adentro   (.xs fox_i)
+    # LOCOS: el traveler simula 0.80 um al crecer y 0.66 um tras las
+    # limpiezas posteriores (Manual de referencia v1, Etapa B). El reparto
+    # entre lo que crece hacia arriba y lo que consume silicio es el ~56/44
+    # tipico del LOCOS, con las limpiezas quitando 0.14 um por arriba.
+    # Lo que fija las capacitancias es la SUMA, 0.66 um.
+    fox_up:      0.31,   # LOCOS crecido hacia arriba    (.xs fox_u)
+    fox_in:      0.35,   # LOCOS crecido hacia adentro   (.xs fox_i)
     poly:        0.25,   # polisilicio                   (.xs pol_t)
+    # Oxido de tapa sobre la compuerta. Se deposita de 0.40 um y lo adelgaza
+    # cada grabado en HF posterior, de forma DISTINTA en cada lado del chip:
+    # sobre el PMOS queda mas delgado porque el SOG de boro (0.66 um) se
+    # retira con un sobregrabado equivalente a 0.80 um.
+    # Por eso el manual da 0.52 um de tapa+PMD en la Tabla 1 (lado NMOS) y
+    # ~0.42 al describir el grabado de contactos (lado PMOS): no es una
+    # contradiccion, son los dos lados.
+    cap_dep:     0.40,   # tal como se deposita
+    cap_n:       0.32,   # final sobre el NMOS
+    cap_p:       0.22,   # final sobre el PMOS
     pmd:         0.20,   # dielectrico poly -&gt; M1        (.xs pmd_t)
     pmd_cmp:     0.00,   # CMP del PMD. Hoy no se hace.
     metal:       0.25,   # espesor de M1 y M2            (.xs m_t)
@@ -103,10 +123,22 @@ module CM05
     # SI ALGUNA MEDICION DEL CORTE NO CUADRA, revisa primero que el .xs
     # tenga height() suficiente. Un corte truncado no avisa: se ve
     # normal y da numeros plausibles pero equivocados.
-    imd_cmp:     0.80,
+    # PLANARIZACION: hoy el proceso NO la tiene, y esa es justamente la razon
+    # de ser de la regla 8.5 de DRC (via sobre escalon). Queda en 0.00 y
+    # parametrizada, lista para cuando se incorpore como mejora de proceso:
+    # subir este numero es lo unico que hay que hacer aqui.
+    #
+    # HISTORIA, porque casi nos cuesta caro: estaba en 0.80 y la nota decia
+    # que ese valor estaba "validado contra el corte transversal". La
+    # validacion era circular: el corte lo genera XSection a partir de este
+    # mismo .xs, asi que lo unico que comprobaba era que el script hiciera
+    # lo que dice, no que el proceso lo haga.
+    imd_cmp:     0.00,
     ovgl:        0.50,   # pasivacion                    (.xs ovgl_t)
     ovgl_cmp:    0.30,   # CMP de la pasivacion                PROVISIONAL
-    nwell_depth: 2.00    # profundidad del pozo n        (.xs nw_de)
+    nwell_depth: 1.27    # profundidad del pozo n        (.xs nw_de)
+                         # TCAD: union del pozo a 1.27 um bajo la
+                         # superficie del Si (Manual v1, Etapa A).
   }
 
   # --------------------------------------------------------------------------
@@ -187,12 +219,19 @@ module CM05
   #  Ver la nota de imd_cmp mas abajo.
   def self.sep(key)
     case key
-    when :m1_poly  then T[:pmd]                       # C_MIP
-    when :m1_m2    then imd_eff                       # C_MIM y C_PAR_M1M2
-    when :m1_sub   then fox_total + T[:pmd]           # M1 sobre campo
-    when :m2_sub   then fox_total + T[:pmd] + T[:metal] + imd_eff
-    when :poly_sub then fox_total                     # poly sobre campo
-    when :m2_poly  then T[:pmd] + T[:metal] + imd_eff
+    # M1 sobre poly: hay que cruzar la tapa ademas del PMD, y la tapa es
+    # mas delgada del lado PMOS. :m1_poly conserva el lado NMOS para no
+    # romper los scripts que ya la usan; separarlas geometricamente en
+    # PEX.lylvs es trabajo aparte.
+    when :m1_poly   then T[:cap_n] + T[:pmd]           # C_MIP, lado NMOS
+    when :m1_poly_n then T[:cap_n] + T[:pmd]
+    when :m1_poly_p then T[:cap_p] + T[:pmd]
+    when :m1_diff   then T[:pmd]                       # M1 sobre difusion
+    when :m1_m2     then imd_eff                       # C_MIM y C_PAR_M1M2
+    when :m1_sub    then fox_total + T[:pmd]           # M1 sobre campo
+    when :m2_sub    then fox_total + T[:pmd] + T[:metal] + imd_eff
+    when :poly_sub  then fox_total                     # poly sobre campo
+    when :m2_poly   then T[:cap_n] + T[:metal] + imd_eff
     else raise "CM05.sep: separacion desconocida: #{key}"
     end
   end
@@ -228,7 +267,8 @@ module CM05
     puts ""
     puts " Separaciones dielectricas y densidades de capacitancia"
     puts format("   %-12s %10s %16s", "par", "d [um]", "C [F/um2]")
-    [:m1_poly, :m1_m2, :m1_sub, :m2_sub, :poly_sub, :m2_poly].each do |k|
+    [:m1_poly_n, :m1_poly_p, :m1_diff, :m1_m2, :m1_sub,
+     :m2_sub, :poly_sub, :m2_poly].each do |k|
       puts format("   %-12s %10.3f %16.3e", k, sep(k), cap(k))
     end
     puts ""
@@ -243,12 +283,16 @@ module CM05
     puts format("   TOX: %.1f nm en ambos transistores.", T[:gox]*1000)
     puts format("   RSH: ndiff %.0f, pdiff %.0f ohm/cuadro.", RHO[:ndiff], RHO[:pdiff])
     puts ""
+    puts format("   Apilamiento: campo %.2f um, tapa %.2f (NMOS) y %.2f (PMOS),",
+                fox_total, T[:cap_n], T[:cap_p])
+    puts "        PMD 0.20. Todo del Manual de referencia CM05 v1 (TCAD)."
+    puts format("   CMP: sin planarizacion (imd_cmp = %.2f), como el proceso hoy.", T[:imd_cmp])
+    puts ""
     puts " SIN RESOLVER"
-    puts "   Apilamiento: el manual da t_fox+PMD = 0.86 um y un oxido de tapa"
-    puts "        sobre la compuerta que aqui no existe, asi que m1_poly,"
-    puts "        m1_sub y poly_sub salen mas altas de lo que el proceso dice."
-    puts "   CMP: el manual dice que el proceso NO tiene planarizacion, pero"
-    puts format("        aqui imd_cmp = %.2f. Revisar junto con el apilamiento.", T[:imd_cmp])
+    puts "   Encima de M1 no hay evidencia: el traveler del TCAD termina en"
+    puts "        Metal 1, asi que imd, metal y pasivacion siguen siendo"
+    puts "        estimaciones. capacitor01 mide C_M1M2 directo al fabricarse."
+    puts "   PEX: m1_poly usa el lado NMOS para las dos; separar por Pselect."
     puts "   Pozo N: 880 ohm/cuadro sin clave en RHO; ningun script lo usa aun."
     puts "=" * 68
     puts ""
