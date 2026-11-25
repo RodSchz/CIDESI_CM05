@@ -98,30 +98,34 @@ mask(lcnta.or(lcntp)).etch(pmd_t, :into => pmd1, :taper => 5)
 mask(lcntp).etch(cap_dep, :into => cap, :taper => 5)
 
 # --- Metal 1: depósito, planarizado simbólico y patrón subtractivo ---
-# RESIDUOS DE Al EN LOS ESCALONES - no es un artefacto, leelo antes de
-# "arreglarlo".
+# ----------------------------------------------------------------------
+# TIPO DE GRABADO DEL ALUMINIO - leelo antes de cambiarlo.
 #
-# El Al se deposita conforme y se graba con profundidad fija, asi que
-# donde trepa un escalon mas alto que (m_t + m1_oe) queda metal pegado al
-# flanco. El escalon del PMD sobre la compuerta con tapa mide
-# gox + poly + tapa = 0.60 um, bastante mas que los 0.52 um que se graban,
-# asi que el corte muestra hilachas de ~0.28 x 0.33 um junto a cada
-# compuerta.
+# Hoy el Al se graba en HUMEDO. Un grabado humedo es isotropico: ataca
+# tambien de lado, y por eso limpia el metal que trepa los escalones. El
+# precio es perdida lateral, o sea pistas mas angostas que la mascara.
 #
-# Eso es lo que el proceso hace. El Manual de referencia v1 lo lista entre
-# los puntos criticos de fabricacion ("Escalones sin planarizacion: el Al
-# sobre el LOCOS y sobre la compuerta con tapa puede adelgazarse o dejar
-# residuos; la simulacion muestra residuos de Al junto al contacto de
-# pozo") y en la Etapa H pide verificar "residuos de Al en los escalones"
-# al microscopio.
+# Si alguna vez se pasa a ataque SECO (plasma, anisotropico), cambiar
+# m1_etch a "seco". El corte empezara a mostrar filamentos de Al pegados
+# al flanco de cada compuerta, y eso NO sera un artefacto del modelo: el
+# escalon del PMD sobre la compuerta con tapa mide 0.60 um y el grabado
+# de 0.52 no lo limpia. El manual lista el efecto entre los puntos
+# criticos de fabricacion y pide verificar "residuos de Al en los
+# escalones" al microscopio.
 #
-# Limpiarlos por sobregrabado pediria ~1.1 um, mas de cuatro veces el
-# espesor de la pelicula; en un grabado humedo, que es isotropico, eso se
-# comeria el ancho de las pistas. La mitigacion real es de diseno y de
-# proceso, no de subirle el numero a esta linea.
-m1_oe  = 0.27    # sobregrabado del Al, ademas del espesor de la pelicula
+# En ese caso hay que revisar TODA la biblioteca digital con
+# scripts/drc/check_hilachas.py del repo CM05_CELLS: con la biblioteca de
+# hoy, 14 de 17 celdas tienen al menos una figura de poly cruzada por dos
+# redes de Metal1 distintas, asi que un filamento continuo a lo largo de
+# ese borde las cortocircuitaria. No es un ajuste de layout: en dos
+# metales es inevitable pasar M1 sobre poly.
+# ----------------------------------------------------------------------
+m1_etch = "humedo"        # "humedo" (isotropico) o "seco" (anisotropico)
+m1_oe   = 0.27            # sobregrabado, ademas del espesor de la pelicula
+m1_lat  = (m1_etch == "humedo") ? m_t + over : 0.0  # perdida lateral
+
 m1_mat = deposit(m_t, m_t)
-mask(lm1.inverted).etch(m_t + m1_oe, :into => m1_mat, :taper => 5)
+mask(lm1.inverted).etch(m_t + m1_oe, m1_lat, :into => m1_mat, :taper => 5)
 
 # --- IMD entre M1 y M2 (mismo “tipo” que PMD) ---
 imd = deposit(imd_t, imd_t, :mode => :round)
