@@ -1,6 +1,35 @@
 ****************************************************
 * CIDESI_CM05 - Modelos (MOS + Pasivos)
-* Rev: preliminar
+* Rev: preliminar 3 (2026-11-23) - MOS ajustados a TCAD
+*
+* Los MOS se ajustaron (ngspice, minimos cuadrados) a las curvas
+* Victory Device de la corrida TCAD CM05v3: Id-Vg a |Vd| = 0.1 V e
+* Id-Vd a |Vg| = 3 y 5 V, con W = 1 um y L = 5 um dibujada.
+* Script: fit_l3_cm05.py. Error rms (normalizado a Id max):
+*   NMOS 0.6 %, PMOS 1.0 %.
+*
+* Fijados por el proceso (no ajustados):
+*   TOX 29.4 nm (TCAD); NSUB 1.6e15 (NMOS) y 1.25e17 (PMOS, superficie
+*   del pozo); GAMMA y PHI derivados de NSUB y TOX; XJ de TCAD;
+*   LD y CGSO/CGDO de la C-V en acumulacion (Cgs = 0.18 y 0.28 fF/um).
+* Ajustados: VTO, UO, THETA, VMAX, KAPPA, ETA; NFS a la pendiente
+*   subumbral TCAD (72 y 124 mV/dec); CJ y MJ a la C-V de la union de
+*   drenaje con PB fijo al potencial de contacto.
+*
+* LIMITACIONES
+* - DELTA = 0: la simulacion 2D no tiene efecto de ancho angosto.
+* - ETA y KAPPA del NMOS son empiricos (reproducen la conductancia de
+*   salida del sustrato poco dopado), no fisicos.
+* - VMAX del NMOS queda practicamente desactivado (5e5 m/s).
+* - PMOS: el VTO de nivel 3 (-1.78 V) es el de inversion fuerte; el Vt
+*   extrapolado de TCAD es -1.62 V y en subumbral el modelo queda
+*   ~0.25 V desplazado. No usar el PMOS en subumbral sin verificar.
+* - Sin barridos de Vsb ni de L en TCAD: el efecto de cuerpo y el
+*   escalamiento con L vienen solo de GAMMA/NSUB y LD.
+* - CJSW = CJ*XJ estimado; CJ ajustado sobre el area 2D del drenaje.
+* - RSH = TCAD (N+ 90, P+ 208 ohm/sq); NM05 midio 53.5 en N+.
+* - Validar con mediciones del primer lote CM05.
+*
 * Nota: Los valores de R y C se ponen en la instancia.
 *       Los modelos pasivos agregan TC1/TC2 (y ruido en R si se habilita).
 ****************************************************
@@ -10,52 +39,60 @@
 * ============================
 
 .model CIDNMOS NMOS (
-+ LEVEL   = 3
-+ TOX     = 5.0249e-08
-+ NSUB    = 1.79729e+15
-+ GAMMA   = 0.546939
-+ PHI     = 0.338776
-+ VTO     = 0.583673
-+ DELTA   = 1.36735
-+ UO      = 539
-+ ETA     = 0.816327
-+ THETA   = 0.0408163
-+ KP      = 2.1e-05
-+ VMAX    = 1.71511e+06
-+ RSH     = 34.1451
-+ LD      = 1.9e-07
-+ CGDO    = 1.31e-10
-+ CGSO    = 1.31e-10
-+ CGBO    = 1.00e-11
-+ CJ      = 2.09e-4
-+ MJ      = 0.5
-+ CJSW    = 3.68e-11
-+ MJSW    = 0.33
-+ XJ      = 1.76e-07)
++ LEVEL  = 3
++ TOX    = 2.94e-08
++ NSUB   = 1.6e+15
++ UO     = 699.2
++ KP     = 8.213e-05
++ VTO    = 0.9547
++ GAMMA  = 0.1962
++ PHI    = 0.6196
++ TPG    = -1
++ NFS    = 1.26e+11
++ THETA  = 0.06576
++ ETA    = 4.094
++ KAPPA  = 5.214
++ VMAX   = 5e+05
++ DELTA  = 0
++ XJ     = 2.5e-07
++ LD     = 1.5e-07
++ CGDO   = 1.8e-10
++ CGSO   = 1.8e-10
++ CGBO   = 1.00e-11
++ PB     = 0.899
++ CJ     = 0.0001521
++ MJ     = 0.502
++ CJSW   = 3.803e-11
++ MJSW   = 0.33
++ RSH    = 90)
 
 .model CIDPMOS PMOS (
-+ LEVEL   = 3
-+ TOX     = 2.5e-08
-+ NSUB    = 6.455e+16
-+ GAMMA   = 1.067
-+ PHI     = 0.793
-+ VTO     = -0.981413
-+ DELTA   = 0.16129
-+ UO      = 150
-+ ETA     = 0.850427
-+ THETA   = 0.0641026
-+ KP      = 1.92308e-05
-+ VMAX    = 8.07712e+06
-+ RSH     = 53.2121
-+ LD      = 2.0e-07
-+ CGDO    = 2.76e-10
-+ CGSO    = 2.76e-10
-+ CGBO    = 1.00e-11
-+ CJ      = 8.205e-4
-+ MJ      = 0.5
-+ CJSW    = 4.32e-10
-+ MJSW    = 0.33
-+ XJ      = 5.27e-07)
++ LEVEL  = 3
++ TOX    = 2.94e-08
++ NSUB   = 1.25e+17
++ UO     = 134.7
++ KP     = 1.581e-05
++ VTO    = -1.781
++ GAMMA  = 1.734
++ PHI    = 0.8449
++ TPG    = 1
++ NFS    = 2.51e+11
++ THETA  = 0.05447
++ ETA    = 0.107
++ KAPPA  = 1.807
++ VMAX   = 3.353e+04
++ DELTA  = 0
++ XJ     = 3.6e-07
++ LD     = 2e-07
++ CGDO   = 2.8e-10
++ CGSO   = 2.8e-10
++ CGBO   = 1.00e-11
++ PB     = 0.981
++ CJ     = 0.0007398
++ MJ     = 0.261
++ CJSW   = 2.663e-10
++ MJSW   = 0.33
++ RSH    = 208)
 
 ****************************************************
 * RESISTORES (modelo RES)
