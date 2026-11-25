@@ -68,10 +68,9 @@ module CM05
   # --------------------------------------------------------------------------
   # Espesores, en micrometros.
   #
-  # Casi todas son espejo del bloque de parametros del .xs. La excepcion
-  # son cap_dep / cap_n / cap_p: el oxido de tapa existe en el proceso y
-  # entra en las capacitancias, pero el .xs todavia NO lo dibuja, asi que
-  # el corte transversal no lo muestra. Agregarlo es trabajo aparte.
+  # Espejo del bloque de parametros del .xs, incluido el oxido de tapa
+  # (cap_dep / cap_n / cap_p), que el .xs ya deposita, adelgaza en dos
+  # pasos y saca en la capa 305/0 del corte.
   #
   # Resuelto: en el .xs la variable del planarizado estaba declarada como
   # pmd_pl = 0.4, no se usaba nunca, y el planarizado real iba escrito
